@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BringUp Client Portal</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="lookup-panel" aria-labelledby="portal-title">
+        <div class="brand-row">
+          <div class="brand-mark" aria-hidden="true">B</div>
+          <div>
+            <p class="eyebrow">BringUp Accounting</p>
+            <h1 id="portal-title">Client file portal</h1>
+          </div>
+        </div>
+
+        <form class="lookup-form" id="lookup-form">
+          <label for="tax-id">Legal / tax ID</label>
+          <div class="lookup-control">
+            <input
+              id="tax-id"
+              name="tax-id"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              placeholder="Enter 512345678"
+              value="512345678"
+            />
+            <button type="submit">View file</button>
+          </div>
+          <p class="hint">Demo IDs: 512345678, 514200111, 580044321</p>
+        </form>
+      </section>
+
+      <section class="result-panel" id="result-panel" aria-live="polite">
+        <div class="empty-state">
+          <div class="empty-visual" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <h2>Enter a legal or tax ID to view a client file.</h2>
+          <p>The demo portal shows onboarding status, open requests, and a limited client response flow.</p>
+        </div>
+      </section>
+    </main>
+
+    <template id="client-template">
+      <article class="client-view">
+        <header class="client-header">
+          <div>
+            <p class="eyebrow">Client file</p>
+            <h2 data-client-name></h2>
+            <p class="muted" data-client-meta></p>
+          </div>
+          <div class="status-pill" data-status-pill></div>
+        </header>
+
+        <section class="progress-section" aria-labelledby="progress-heading">
+          <h3 id="progress-heading">Onboarding progress</h3>
+          <ol class="progress-track" data-progress-track></ol>
+        </section>
+
+        <section class="task-section" aria-labelledby="tasks-heading">
+          <div class="section-heading">
+            <h3 id="tasks-heading">Open tasks and requests</h3>
+            <span data-task-count></span>
+          </div>
+          <div class="task-list" data-task-list></div>
+        </section>
+
+        <section class="response-section" aria-labelledby="response-heading">
+          <h3 id="response-heading">Send an update</h3>
+          <form class="response-form" data-response-form>
+            <label for="response-type">Update type</label>
+            <select id="response-type" name="response-type">
+              <option value="Documents Sent">Documents were sent</option>
+              <option value="Response Received">I replied with the requested information</option>
+              <option value="Needs Review">Please review my latest update</option>
+            </select>
+
+            <label for="response-details">Details</label>
+            <textarea
+              id="response-details"
+              name="response-details"
+              rows="4"
+              placeholder="Write a short note for the accountant"
+            ></textarea>
+
+            <button type="submit">Submit update</button>
+            <p class="response-message" data-response-message></p>
+          </form>
+        </section>
+      </article>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
