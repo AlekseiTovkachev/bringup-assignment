@@ -13,16 +13,60 @@ const WORKSPACE_ID = process.env.MONDAY_WORKSPACE_ID || "";
 const BOARD_PREFIX = process.env.MONDAY_BOARD_PREFIX || "";
 const DRY_RUN = process.argv.includes("--dry-run");
 const WITH_RELATIONS = process.argv.includes("--with-relations");
-const DISPLAY_LANGUAGE = getArgValue("--lang") || process.env.MONDAY_DISPLAY_LANGUAGE || "he";
+const WITH_MIRRORS = process.argv.includes("--with-mirrors");
+const WITH_CLIENT_BACKLINKS = process.argv.includes("--with-client-backlinks");
+const CLEANUP_STARTER_ITEMS = process.argv.includes("--cleanup-starter-items");
+const APPLY_BOARD_METADATA = process.argv.includes("--apply-board-metadata");
+const FRESH = process.argv.includes("--fresh");
+const WRITE_ENV = process.argv.includes("--write-env");
+const ARCHIVE_BOARD_IDS = getListArgValue("--archive-boards");
+const DISPLAY_LANGUAGE = getArgValue("--lang") || process.env.MONDAY_DISPLAY_LANGUAGE || "en";
 const labels = getLabels(DISPLAY_LANGUAGE);
 
 const config = {
+  staff: {
+    envName: "MONDAY_STAFF_BOARD_ID",
+    envPrefix: "STAFF",
+    name: `${BOARD_PREFIX}${labels.boards.staff}`,
+    itemTerminology: labels.itemTerminology.staff,
+    primaryNameEnv: "MONDAY_STAFF_NAME_COLUMN_ID",
+    primaryNameColumnId: "name",
+    primaryNameTitle: labels.columns.staffName,
+    columns: [
+      dropdown("role", labels.columns.staffRole, [
+        labels.staffRoles.partner,
+        labels.staffRoles.seniorAccountant,
+        labels.staffRoles.accountant,
+        labels.staffRoles.payrollSpecialist,
+        labels.staffRoles.admin,
+      ]),
+      email("email", labels.columns.email),
+      phone("phone", labels.columns.phone),
+      dropdown("specialties", labels.columns.specialties, [
+        labels.serviceTypes.bookkeeping,
+        labels.serviceTypes.payroll,
+        labels.serviceTypes.monthlyReporting,
+        labels.serviceTypes.vatReporting,
+        labels.serviceTypes.deductions,
+        labels.serviceTypes.annualReport,
+      ]),
+      numbers("weekly_capacity_hours", labels.columns.weeklyCapacityHours),
+      status("staff_status", labels.columns.staffStatus, [
+        labels.staffStatus.active,
+        labels.staffStatus.onLeave,
+        labels.staffStatus.inactive,
+      ]),
+    ],
+  },
   clients: {
     envName: "MONDAY_CLIENTS_BOARD_ID",
     envPrefix: "CLIENT",
     name: `${BOARD_PREFIX}${labels.boards.clients}`,
+    itemTerminology: labels.itemTerminology.clients,
+    primaryNameEnv: "MONDAY_CLIENT_NAME_COLUMN_ID",
+    primaryNameColumnId: "name",
+    primaryNameTitle: labels.columns.clientName,
     columns: [
-      text("client_name", labels.columns.clientName, "MONDAY_CLIENT_NAME_COLUMN_ID"),
       text("legal_tax_id", labels.columns.legalTaxId),
       dropdown("entity_type", labels.columns.entityType, [
         labels.entityTypes.individual,
@@ -84,6 +128,7 @@ const config = {
     envName: "MONDAY_ONGOING_TASKS_BOARD_ID",
     envPrefix: "TASK",
     name: `${BOARD_PREFIX}${labels.boards.ongoingTasks}`,
+    itemTerminology: labels.itemTerminology.tasks,
     columns: [
       dropdown("service_type", labels.columns.serviceType, [
         labels.serviceTypes.bookkeeping,
@@ -110,6 +155,18 @@ const config = {
 
 const relationColumns = [
   {
+    boardKey: "clients",
+    column: boardRelation(
+      "demo_assigned_staff",
+      labels.columns.demoAssignedStaff,
+      "MONDAY_CLIENT_DEMO_ASSIGNED_STAFF_COLUMN_ID",
+      ({ boardIds }) => ({
+        boardIds: [boardIds.staff],
+        allowMultipleItems: false,
+      }),
+    ),
+  },
+  {
     boardKey: "ongoingTasks",
     column: boardRelation(
       "linked_client_file",
@@ -122,17 +179,33 @@ const relationColumns = [
     ),
   },
   {
-    boardKey: "clients",
+    boardKey: "ongoingTasks",
     column: boardRelation(
-      "linked_ongoing_tasks",
-      labels.columns.linkedOngoingTasks,
-      "MONDAY_CLIENT_LINKED_ONGOING_TASKS_COLUMN_ID",
+      "demo_owner_staff",
+      labels.columns.demoOwnerStaff,
+      "MONDAY_TASK_DEMO_OWNER_STAFF_COLUMN_ID",
       ({ boardIds }) => ({
-        boardIds: [boardIds.ongoingTasks],
-        allowMultipleItems: true,
+        boardIds: [boardIds.staff],
+        allowMultipleItems: false,
       }),
     ),
   },
+  ...(WITH_CLIENT_BACKLINKS
+    ? [
+        {
+          boardKey: "clients",
+          column: boardRelation(
+            "linked_ongoing_tasks",
+            labels.columns.linkedOngoingTasks,
+            "MONDAY_CLIENT_LINKED_ONGOING_TASKS_COLUMN_ID",
+            ({ boardIds }) => ({
+              boardIds: [boardIds.ongoingTasks],
+              allowMultipleItems: true,
+            }),
+          ),
+        },
+      ]
+    : []),
 ];
 
 const mirrorColumns = [
@@ -142,9 +215,10 @@ const mirrorColumns = [
       "client_name",
       labels.columns.clientName,
       "MONDAY_TASK_CLIENT_NAME_COLUMN_ID",
-      ({ columnIds }) => ({
+      ({ boardIds, columnIds }) => ({
         relationColumnId: columnIds.MONDAY_TASK_LINKED_CLIENT_COLUMN_ID,
-        displayedColumnId: columnIds.MONDAY_CLIENT_NAME_COLUMN_ID,
+        displayedBoardId: boardIds.clients,
+        displayedColumnId: config.clients.primaryNameColumnId,
       }),
     ),
   },
@@ -154,8 +228,9 @@ const mirrorColumns = [
       "legal_tax_id",
       labels.columns.legalTaxId,
       "MONDAY_TASK_LEGAL_TAX_ID_COLUMN_ID",
-      ({ columnIds }) => ({
+      ({ boardIds, columnIds }) => ({
         relationColumnId: columnIds.MONDAY_TASK_LINKED_CLIENT_COLUMN_ID,
+        displayedBoardId: boardIds.clients,
         displayedColumnId: columnIds.MONDAY_CLIENT_LEGAL_TAX_ID_COLUMN_ID,
       }),
     ),
@@ -174,19 +249,71 @@ async function main() {
     );
   }
 
+  if (ARCHIVE_BOARD_IDS.length) {
+    for (const boardId of ARCHIVE_BOARD_IDS) {
+      await archiveBoard(boardId);
+    }
+    return;
+  }
+
+  if (FRESH) {
+    await archiveConfiguredBoards(Object.values(config));
+  }
+
   const created = {};
   const boardIds = {};
   const columnIds = {};
 
   for (const [boardKey, boardConfig] of Object.entries(config)) {
-    const existingBoardId = process.env[boardConfig.envName];
+    const existingBoardId = configuredEnv(boardConfig.envName);
+    const createdBoard = !existingBoardId;
     const boardId =
       existingBoardId || (await createBoard(boardConfig.name, boardConfig.envName));
-    const existingColumns = await getBoardColumns(boardId);
 
     boardIds[boardKey] = boardId;
     created[boardConfig.envName] = boardId;
     console.log(`\n${boardConfig.name}: ${boardId}`);
+
+    const shouldApplyBoardMetadata = createdBoard || APPLY_BOARD_METADATA;
+
+    if (boardConfig.itemTerminology && shouldApplyBoardMetadata) {
+      try {
+        await updateBoardItemTerminology(boardId, boardConfig.itemTerminology);
+        console.log(
+          `  item terminology: ${boardConfig.itemTerminology.singular} / ${boardConfig.itemTerminology.plural}`,
+        );
+      } catch (error) {
+        console.warn(`  [warn] item terminology was not updated: ${error.message}`);
+      }
+    }
+
+    if (createdBoard || CLEANUP_STARTER_ITEMS) {
+      await archiveStarterItems(boardId);
+    }
+
+    const existingColumns = await getBoardColumns(boardId);
+
+    if (boardConfig.primaryNameEnv) {
+      if (shouldApplyBoardMetadata) {
+        try {
+          await updateColumnTitle(
+            boardId,
+            boardConfig.primaryNameColumnId,
+            boardConfig.primaryNameTitle,
+          );
+        } catch (error) {
+          console.warn(
+            `  [warn] primary column title was not updated: ${error.message}`,
+          );
+        }
+      }
+
+      columnIds[boardConfig.primaryNameEnv] = boardConfig.primaryNameColumnId;
+      created[boardConfig.primaryNameEnv] = boardConfig.primaryNameColumnId;
+      console.log(
+        `  ${boardConfig.primaryNameTitle}: primary item name (${boardConfig.primaryNameColumnId})`,
+      );
+    }
 
     for (const column of boardConfig.columns) {
       const envName = column.envName || envColumnName(boardConfig.envPrefix, column.id);
@@ -195,6 +322,10 @@ async function main() {
       columnIds[envName] = columnId;
       created[envName] = columnId;
       console.log(`  ${column.title}: ${columnId}`);
+    }
+
+    if (createdBoard) {
+      await archiveStarterItems(boardId);
     }
   }
 
@@ -205,20 +336,33 @@ async function main() {
       const existingColumns = await getBoardColumns(boardId);
       const column = materializeColumn(relation.column, { boardIds, columnIds });
       const envName = column.envName || envColumnName(boardConfig.envPrefix, column.id);
-      const columnId = await createOrReuseColumn(boardId, column, envName, existingColumns);
+      const columnId = await createOrReuseOptionalColumn(boardId, column, envName, existingColumns);
+      if (!columnId) continue;
 
       columnIds[envName] = columnId;
       created[envName] = columnId;
       console.log(`  ${column.title}: ${columnId}`);
     }
 
-    for (const mirrorColumn of mirrorColumns) {
+    if (!WITH_CLIENT_BACKLINKS) {
+      created.MONDAY_CLIENT_LINKED_ONGOING_TASKS_COLUMN_ID = "";
+    }
+
+    if (!WITH_MIRRORS) {
+      for (const mirrorColumn of mirrorColumns) {
+        created[mirrorColumn.column.envName] = "";
+      }
+    }
+
+    if (WITH_MIRRORS) for (const mirrorColumn of mirrorColumns) {
       const boardConfig = config[mirrorColumn.boardKey];
       const boardId = boardIds[mirrorColumn.boardKey];
       const existingColumns = await getBoardColumns(boardId);
-      const column = materializeColumn(mirrorColumn.column, { boardIds, columnIds });
+      const column = materializeOptionalColumn(mirrorColumn.column, { boardIds, columnIds });
+      if (!column) continue;
       const envName = column.envName || envColumnName(boardConfig.envPrefix, column.id);
-      const columnId = await createOrReuseColumn(boardId, column, envName, existingColumns);
+      const columnId = await createOrReuseOptionalColumn(boardId, column, envName, existingColumns);
+      if (!columnId) continue;
 
       columnIds[envName] = columnId;
       created[envName] = columnId;
@@ -226,13 +370,57 @@ async function main() {
     }
   } else {
     console.log(
-      "\nDeferred: create Connect Boards and Mirror columns manually, or rerun with --with-relations after testing the monday API defaults in this account.",
+      "\nRelations skipped. Rerun with --with-relations for the recommended demo links between staff, clients, and tasks.",
     );
   }
 
   console.log("\nPaste these values into .env:");
   for (const [key, value] of Object.entries(created)) {
     console.log(`${key}=${value}`);
+  }
+
+  if (WRITE_ENV && DRY_RUN) {
+    console.log("\n[dry-run] .env would be updated with board and column IDs.");
+  } else if (WRITE_ENV) {
+    writeEnvValues(created);
+    console.log("\n.env updated with board and column IDs.");
+  }
+}
+
+async function archiveConfiguredBoards(boardConfigs) {
+  const boardIds = [
+    ...new Set(boardConfigs.map((boardConfig) => process.env[boardConfig.envName]).filter(Boolean)),
+  ];
+
+  if (!boardIds.length) {
+    console.log("[fresh] no configured boards to archive");
+    return;
+  }
+
+  for (const boardId of boardIds) {
+    await archiveBoard(boardId);
+  }
+}
+
+async function archiveBoard(boardId) {
+  if (DRY_RUN || String(boardId).startsWith("$")) {
+    console.log(`[dry-run] archive board: ${boardId}`);
+    return;
+  }
+
+  const mutation = `
+    mutation ArchiveBoard($boardId: ID!) {
+      archive_board(board_id: $boardId) {
+        id
+      }
+    }
+  `;
+
+  try {
+    await mondayRequest(mutation, { boardId: String(boardId) });
+    console.log(`[fresh] archived board: ${boardId}`);
+  } catch (error) {
+    console.warn(`[fresh] could not archive board ${boardId}: ${error.message}`);
   }
 }
 
@@ -299,8 +487,110 @@ async function createColumn(boardId, column) {
   return data.create_column.id;
 }
 
+async function updateColumnTitle(boardId, columnId, title) {
+  if (DRY_RUN || String(boardId).startsWith("$")) {
+    console.log(`[dry-run] rename column ${columnId} on ${boardId}: ${title}`);
+    return;
+  }
+
+  const mutation = `
+    mutation UpdateColumnTitle($boardId: ID!, $columnId: String!, $title: String!) {
+      change_column_title(
+        board_id: $boardId
+        column_id: $columnId
+        title: $title
+      ) {
+        id
+        title
+      }
+    }
+  `;
+
+  await mondayRequest(mutation, {
+    boardId: String(boardId),
+    columnId,
+    title,
+  });
+}
+
+async function updateBoardItemTerminology(boardId, itemTerminology) {
+  if (DRY_RUN || String(boardId).startsWith("$")) {
+    console.log(
+      `[dry-run] set item terminology on ${boardId}: ${itemTerminology.singular}/${itemTerminology.plural}`,
+    );
+    return;
+  }
+
+  const mutation = `
+    mutation UpdateBoardItemTerminology($boardId: ID!, $value: String!) {
+      update_board(
+        board_id: $boardId
+        board_attribute: item_nickname
+        new_value: $value
+      )
+    }
+  `;
+
+  const value = JSON.stringify(itemTerminologyPayload(itemTerminology));
+
+  await mondayRequest(mutation, {
+    boardId: String(boardId),
+    value,
+  });
+}
+
+async function archiveStarterItems(boardId) {
+  if (DRY_RUN || String(boardId).startsWith("$")) {
+    console.log(`[dry-run] archive monday starter item on ${boardId}`);
+    return;
+  }
+
+  const query = `
+    query BoardStarterItems($boardIds: [ID!]!) {
+      boards(ids: $boardIds) {
+        items_page(limit: 25) {
+          items {
+            id
+            name
+          }
+        }
+      }
+    }
+  `;
+
+  const data = await mondayRequest(query, { boardIds: [String(boardId)] });
+  const items = data.boards?.[0]?.items_page?.items || [];
+  const starterItems = items.filter((item) => isStarterItemName(item.name));
+
+  if (!starterItems.length) {
+    console.log("  [skip] no monday starter item found");
+    return;
+  }
+
+  const mutation = `
+    mutation ArchiveStarterItem($itemId: ID!) {
+      archive_item(item_id: $itemId) {
+        id
+      }
+    }
+  `;
+
+  for (const item of starterItems) {
+    await mondayRequest(mutation, { itemId: String(item.id) });
+    console.log(`  [archive] monday starter item: ${item.name} (${item.id})`);
+  }
+}
+
+function itemTerminologyPayload(itemTerminology) {
+  return {
+    preset_type: itemTerminology.presetType,
+    singular: itemTerminology.apiSingular || itemTerminology.singular,
+    plural: itemTerminology.apiPlural || itemTerminology.plural,
+  };
+}
+
 async function createOrReuseColumn(boardId, column, envName, existingColumns) {
-  const configuredColumnId = process.env[envName];
+  const configuredColumnId = configuredEnv(envName);
 
   if (configuredColumnId) {
     console.log(`  [skip] ${column.title} already configured as ${envName}`);
@@ -327,6 +617,15 @@ async function createOrReuseColumn(boardId, column, envName, existingColumns) {
   });
 
   return createdColumnId;
+}
+
+async function createOrReuseOptionalColumn(boardId, column, envName, existingColumns) {
+  try {
+    return await createOrReuseColumn(boardId, column, envName, existingColumns);
+  } catch (error) {
+    console.warn(`  [warn] ${column.title} was not created: ${error.message}`);
+    return null;
+  }
 }
 
 async function getBoardColumns(boardId) {
@@ -376,10 +675,19 @@ async function mondayRequest(query, variables) {
   }
 
   if (body?.errors?.length) {
-    throw new Error(`monday API error: ${JSON.stringify(body.errors, null, 2)}`);
+    throw new Error(`monday API error: ${summarizeMondayErrors(body.errors)}`);
   }
 
   return body.data;
+}
+
+function summarizeMondayErrors(errors) {
+  return errors
+    .map((error) => {
+      const code = error.extensions?.code;
+      return code ? `${code}: ${error.message}` : error.message;
+    })
+    .join("; ");
 }
 
 function text(id, title, envName) {
@@ -406,6 +714,10 @@ function date(id, title, envName) {
   return { id, title, type: "date", envName };
 }
 
+function numbers(id, title, envName) {
+  return { id, title, type: "numbers", envName };
+}
+
 function checkbox(id, title, envName) {
   return { id, title, type: "checkbox", envName };
 }
@@ -420,7 +732,15 @@ function boardRelation(id, title, envName, buildDefaults) {
     title,
     type: "board_relation",
     envName,
-    buildDefaults,
+    buildDefaults: (context) => ({ settings: relationSettings(buildDefaults(context)) }),
+  };
+}
+
+function relationSettings(settings) {
+  return {
+    ...settings,
+    boardIds: settings.boardIds?.map((boardId) => Number(boardId)),
+    boardId: settings.boardId ? Number(settings.boardId) : undefined,
   };
 }
 
@@ -434,8 +754,17 @@ function mirror(id, title, envName, buildSettings) {
       const settings = buildSettings(context);
 
       return {
-        relationColumnId: settings.relationColumnId,
-        displayedColumnId: settings.displayedColumnId,
+        settings: {
+          relation_column: {
+            [settings.relationColumnId]: true,
+          },
+          displayed_linked_columns: [
+            {
+              board_id: String(settings.displayedBoardId),
+              column_ids: [settings.displayedColumnId],
+            },
+          ],
+        },
       };
     },
   };
@@ -460,7 +789,7 @@ function dropdown(id, title, labels, envName) {
     type: "dropdown",
     envName,
     defaults: {
-      labels: labels.map((name, idValue) => ({ id: idValue + 1, name })),
+      labels: labels.map((label, idValue) => ({ id: idValue + 1, label })),
     },
   };
 }
@@ -472,6 +801,19 @@ function materializeColumn(column, context) {
     ...column,
     defaults: column.buildDefaults(context),
   };
+}
+
+function materializeOptionalColumn(column, context) {
+  try {
+    return materializeColumn(column, context);
+  } catch (error) {
+    console.warn(`  [warn] ${column.title} was skipped: ${error.message}`);
+    return null;
+  }
+}
+
+function configuredEnv(name) {
+  return FRESH ? "" : process.env[name];
 }
 
 function loadDotEnv() {
@@ -500,8 +842,56 @@ function envColumnName(prefix, columnId) {
   return `MONDAY_${prefix}_${columnId.toUpperCase()}_COLUMN_ID`;
 }
 
+function writeEnvValues(values) {
+  const envPath = path.join(process.cwd(), ".env");
+  const existingContents = fs.existsSync(envPath) ? fs.readFileSync(envPath, "utf8") : "";
+  const lines = existingContents ? existingContents.split(/\r?\n/) : [];
+  const seen = new Set();
+  const updatedLines = lines.map((line) => {
+    const match = line.match(/^([A-Z0-9_]+)=/);
+    if (!match || !Object.prototype.hasOwnProperty.call(values, match[1])) return line;
+
+    seen.add(match[1]);
+    return `${match[1]}=${values[match[1]]}`;
+  });
+
+  for (const [key, value] of Object.entries(values)) {
+    if (!seen.has(key)) {
+      updatedLines.push(`${key}=${value}`);
+    }
+  }
+
+  fs.writeFileSync(envPath, `${trimTrailingEmptyLines(updatedLines).join("\n")}\n`);
+
+  for (const [key, value] of Object.entries(values)) {
+    process.env[key] = String(value);
+  }
+}
+
+function trimTrailingEmptyLines(lines) {
+  const trimmed = [...lines];
+
+  while (trimmed.length && trimmed[trimmed.length - 1] === "") {
+    trimmed.pop();
+  }
+
+  return trimmed;
+}
+
 function normalizeTitle(title) {
   return title.trim().toLowerCase();
+}
+
+function isStarterItemName(name) {
+  const normalized = normalizeTitle(name || "");
+
+  return [
+    "task 1",
+    "item 1",
+    "לקוח 1",
+    "משימה 1",
+    "פריט 1",
+  ].includes(normalized);
 }
 
 function getArgValue(name) {
@@ -512,6 +902,13 @@ function getArgValue(name) {
   if (index !== -1) return process.argv[index + 1];
 
   return "";
+}
+
+function getListArgValue(name) {
+  return getArgValue(name)
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
 }
 
 function getLabels(language) {
@@ -531,8 +928,32 @@ function getTranslations() {
   return {
     he: {
       boards: {
+        staff: "צוות",
         clients: "לקוחות",
         ongoingTasks: "משימות שוטפות",
+      },
+      itemTerminology: {
+        staff: {
+          presetType: "custom",
+          singular: "איש צוות",
+          plural: "צוות",
+          apiSingular: "Staff Member",
+          apiPlural: "Staff",
+        },
+        clients: {
+          presetType: "clients",
+          singular: "לקוח",
+          plural: "לקוחות",
+          apiSingular: "Client",
+          apiPlural: "Clients",
+        },
+        tasks: {
+          presetType: "tasks",
+          singular: "משימה",
+          plural: "משימות",
+          apiSingular: "Task",
+          apiPlural: "Tasks",
+        },
       },
       columns: {
         clientName: "שם לקוח",
@@ -553,6 +974,12 @@ function getTranslations() {
         lastClientUpdate: "עדכון אחרון מהלקוח",
         intakeNotes: "הערות קליטה",
         consentConfirmed: "אישור הסכמה",
+        staffName: "שם איש צוות",
+        staffRole: "תפקיד",
+        specialties: "התמחויות",
+        weeklyCapacityHours: "קיבולת שבועית בשעות",
+        staffStatus: "סטטוס צוות",
+        demoAssignedStaff: "איש צוות אחראי לדמו",
         serviceType: "סוג שירות",
         reportingPeriod: "תקופת דיווח",
         owner: "אחראי",
@@ -560,8 +987,21 @@ function getTranslations() {
         taskStatus: "סטטוס משימה",
         clientRequest: "מידע חסר / בקשה מהלקוח",
         lastUpdated: "עודכן לאחרונה",
+        demoOwnerStaff: "איש צוות אחראי לדמו",
         linkedClientFile: "תיק לקוח מקושר",
         linkedOngoingTasks: "משימות שוטפות מקושרות",
+      },
+      staffRoles: {
+        partner: "שותף",
+        seniorAccountant: "רואה חשבון בכיר",
+        accountant: "רואה חשבון",
+        payrollSpecialist: "מומחה שכר",
+        admin: "אדמין",
+      },
+      staffStatus: {
+        active: "פעיל",
+        onLeave: "בחופשה",
+        inactive: "לא פעיל",
       },
       entityTypes: {
         individual: "יחיד / עצמאי",
@@ -612,8 +1052,26 @@ function getTranslations() {
     },
     en: {
       boards: {
+        staff: "Staff",
         clients: "Clients",
         ongoingTasks: "Ongoing Tasks",
+      },
+      itemTerminology: {
+        staff: {
+          presetType: "custom",
+          singular: "Staff Member",
+          plural: "Staff",
+        },
+        clients: {
+          presetType: "clients",
+          singular: "Client",
+          plural: "Clients",
+        },
+        tasks: {
+          presetType: "tasks",
+          singular: "Task",
+          plural: "Tasks",
+        },
       },
       columns: {
         clientName: "Client Name",
@@ -634,6 +1092,12 @@ function getTranslations() {
         lastClientUpdate: "Last Client Update",
         intakeNotes: "Intake Notes",
         consentConfirmed: "Consent Confirmed",
+        staffName: "Staff Member",
+        staffRole: "Role",
+        specialties: "Specialties",
+        weeklyCapacityHours: "Weekly Capacity Hours",
+        staffStatus: "Staff Status",
+        demoAssignedStaff: "Demo Assigned Staff",
         serviceType: "Service Type",
         reportingPeriod: "Reporting Period",
         owner: "Owner",
@@ -641,8 +1105,21 @@ function getTranslations() {
         taskStatus: "Task Status",
         clientRequest: "Missing Information / Client Request",
         lastUpdated: "Last Updated",
+        demoOwnerStaff: "Demo Owner Staff",
         linkedClientFile: "Linked Client File",
         linkedOngoingTasks: "Linked Ongoing Tasks",
+      },
+      staffRoles: {
+        partner: "Partner",
+        seniorAccountant: "Senior Accountant",
+        accountant: "Accountant",
+        payrollSpecialist: "Payroll Specialist",
+        admin: "Admin",
+      },
+      staffStatus: {
+        active: "Active",
+        onLeave: "On Leave",
+        inactive: "Inactive",
       },
       entityTypes: {
         individual: "Individual",

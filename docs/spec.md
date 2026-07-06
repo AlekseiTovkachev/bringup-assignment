@@ -51,6 +51,8 @@ Required by the assignment:
 - `Onboarding Status`
 - `Service Types`
 
+In monday, `Client Name` should be the primary item name on the `Clients` board, not a separate text column. Each row/item is a client file, and the first column should contain the client or business name.
+
 Recommended additions for operational completeness:
 
 - `Missing Information`
@@ -96,6 +98,22 @@ Task status describes the work state:
 `Not Started -> In Progress -> Waiting for Client -> Done`
 
 Overdue work is derived from `Due Date` and `Task Status`, not stored as a status value. This allows a task to remain `Waiting for Client` while still appearing in overdue dashboard views.
+
+### Staff Board For Demo Data
+
+The required production model can use monday `People` columns for `Assigned Accountant` and task `Owner`. In a one-user demo account, a small `Staff` board can be added to simulate a multi-person accounting firm without inviting real users.
+
+Recommended demo fields:
+
+- `Staff Member` as the primary item name
+- `Role`
+- `Email`
+- `Phone`
+- `Specialties`
+- `Weekly Capacity Hours`
+- `Staff Status`
+
+The `Clients` and `Ongoing Tasks` boards can include demo staff relation columns for sample-data grouping and dashboard walkthroughs. These demo staff links do not replace the real `People` columns in a production workspace.
 
 ## monday Automations
 
