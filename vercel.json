@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/portal/index.html"
+    },
+    {
+      "source": "/app.js",
+      "destination": "/portal/app.js"
+    },
+    {
+      "source": "/styles.css",
+      "destination": "/portal/styles.css"
+    }
+  ]
+}

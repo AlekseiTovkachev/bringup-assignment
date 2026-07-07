@@ -1,0 +1,13 @@
+{
+  "name": "bringup-assignment",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "portal:check": "node --check api/portal-client.js && node --check api/portal-response.js && node --check lib/monday-client.js && node --check lib/portal-service.js && node --check lib/validation.js && node --check portal/app.js",
+    "portal:dev": "vercel dev"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

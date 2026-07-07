@@ -374,6 +374,10 @@ async function main() {
     );
   }
 
+  if (WRITE_ENV) {
+    Object.assign(created, automationEnvValues(labels));
+  }
+
   console.log("\nPaste these values into .env:");
   for (const [key, value] of Object.entries(created)) {
     console.log(`${key}=${value}`);
@@ -909,6 +913,46 @@ function getListArgValue(name) {
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
+}
+
+function automationEnvValues(labels) {
+  return {
+    AUTOMATION_LABEL_ONBOARDING_LEAD: labels.onboarding.lead,
+    AUTOMATION_LABEL_ONBOARDING_ACTIVE: labels.onboarding.active,
+    AUTOMATION_LABEL_ONBOARDING_FILE_OPENED: labels.onboarding.fileOpened,
+    AUTOMATION_LABEL_SERVICE_VAT_REPORTING: labels.serviceTypes.vatReporting,
+    AUTOMATION_LABEL_SERVICE_PAYROLL: labels.serviceTypes.payroll,
+    AUTOMATION_LABEL_SERVICE_BOOKKEEPING: labels.serviceTypes.bookkeeping,
+    AUTOMATION_LABEL_TASK_NOT_STARTED: labels.taskStatus.notStarted,
+    AUTOMATION_LABEL_TASK_WAITING_FOR_CLIENT: labels.taskStatus.waitingForClient,
+    AUTOMATION_LABEL_TASK_DONE: labels.taskStatus.done,
+    AUTOMATION_LABEL_ENGAGEMENT_NOT_CREATED: labels.engagementLetter.notCreated,
+    AUTOMATION_LABEL_ENGAGEMENT_CREATED: labels.engagementLetter.created,
+    AUTOMATION_LABEL_ENGAGEMENT_SENT: labels.engagementLetter.sent,
+    AUTOMATION_LABEL_CLIENT_RESPONSE_NONE: labels.clientResponse.none,
+    AUTOMATION_LABEL_CLIENT_RESPONSE_NEEDS_REVIEW: labels.clientResponse.needsReview,
+    AUTOMATION_LABEL_DOCUMENT_CHECK_NOT_STARTED: labels.documentCheck.notStarted,
+
+    AUTOMATION_NAME_CLIENTS_BOARD: labels.boards.clients,
+    AUTOMATION_NAME_TASKS_BOARD: labels.boards.ongoingTasks,
+    AUTOMATION_NAME_LINKED_CLIENT_COLUMN: labels.columns.linkedClientFile,
+    AUTOMATION_NAME_ASSIGNED_ACCOUNTANT_COLUMN: labels.columns.assignedAccountant,
+    AUTOMATION_NAME_OWNER_COLUMN: labels.columns.owner,
+    AUTOMATION_NAME_ONBOARDING_STATUS_COLUMN: labels.columns.onboardingStatus,
+    AUTOMATION_NAME_SERVICE_TYPES_COLUMN: labels.columns.serviceTypes,
+    AUTOMATION_NAME_SERVICE_TYPE_COLUMN: labels.columns.serviceType,
+    AUTOMATION_NAME_REPORTING_PERIOD_COLUMN: labels.columns.reportingPeriod,
+    AUTOMATION_NAME_DUE_DATE_COLUMN: labels.columns.dueDate,
+    AUTOMATION_NAME_TASK_STATUS_COLUMN: labels.columns.taskStatus,
+    AUTOMATION_NAME_DOCUMENT_CHECK_COLUMN: labels.columns.documentCheck,
+    AUTOMATION_NAME_ENGAGEMENT_LETTER_STATUS_COLUMN: labels.columns.engagementLetterStatus,
+    AUTOMATION_NAME_CLIENT_RESPONSE_COLUMN: labels.columns.clientResponse,
+    AUTOMATION_NAME_CLIENT_RESPONSE_DETAILS_COLUMN: labels.columns.clientResponseDetails,
+    AUTOMATION_NAME_LAST_CLIENT_UPDATE_COLUMN: labels.columns.lastClientUpdate,
+    AUTOMATION_NAME_LAST_UPDATED_COLUMN: labels.columns.lastUpdated,
+    AUTOMATION_NAME_MISSING_INFORMATION_COLUMN: labels.columns.missingInformation,
+    AUTOMATION_NAME_CLIENT_REQUEST_COLUMN: labels.columns.clientRequest,
+  };
 }
 
 function getLabels(language) {

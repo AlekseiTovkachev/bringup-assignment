@@ -17,121 +17,164 @@ const TASKS_BOARD_ID =
   process.env.MONDAY_ONGOING_TASKS_BOARD_ID ||
   "5099844469";
 
+const label = {
+  onboardingLead: env("AUTOMATION_LABEL_ONBOARDING_LEAD", "Lead"),
+  onboardingActive: env("AUTOMATION_LABEL_ONBOARDING_ACTIVE", "Active"),
+  serviceVatReporting: env("AUTOMATION_LABEL_SERVICE_VAT_REPORTING", "VAT Reporting"),
+  servicePayroll: env("AUTOMATION_LABEL_SERVICE_PAYROLL", "Payroll"),
+  serviceBookkeeping: env("AUTOMATION_LABEL_SERVICE_BOOKKEEPING", "Bookkeeping"),
+  taskNotStarted: env("AUTOMATION_LABEL_TASK_NOT_STARTED", "Not Started"),
+  taskWaitingForClient: env("AUTOMATION_LABEL_TASK_WAITING_FOR_CLIENT", "Waiting for Client"),
+  taskDone: env("AUTOMATION_LABEL_TASK_DONE", "Done"),
+  engagementNotCreated: env("AUTOMATION_LABEL_ENGAGEMENT_NOT_CREATED", "Not Created"),
+  clientResponseNone: env("AUTOMATION_LABEL_CLIENT_RESPONSE_NONE", "None"),
+  clientResponseNeedsReview: env("AUTOMATION_LABEL_CLIENT_RESPONSE_NEEDS_REVIEW", "Needs Review"),
+  documentCheckNotStarted: env("AUTOMATION_LABEL_DOCUMENT_CHECK_NOT_STARTED", "Not Started"),
+};
+
+const name = {
+  clientsBoard: env("AUTOMATION_NAME_CLIENTS_BOARD", "Clients"),
+  tasksBoard: env("AUTOMATION_NAME_TASKS_BOARD", "Ongoing Tasks"),
+  linkedClientColumn: env("AUTOMATION_NAME_LINKED_CLIENT_COLUMN", "Linked Client File"),
+  assignedAccountantColumn: env("AUTOMATION_NAME_ASSIGNED_ACCOUNTANT_COLUMN", "Assigned Accountant"),
+  ownerColumn: env("AUTOMATION_NAME_OWNER_COLUMN", "Owner"),
+  onboardingStatusColumn: env("AUTOMATION_NAME_ONBOARDING_STATUS_COLUMN", "Onboarding Status"),
+  serviceTypesColumn: env("AUTOMATION_NAME_SERVICE_TYPES_COLUMN", "Service Types"),
+  serviceTypeColumn: env("AUTOMATION_NAME_SERVICE_TYPE_COLUMN", "Service Type"),
+  reportingPeriodColumn: env("AUTOMATION_NAME_REPORTING_PERIOD_COLUMN", "Reporting Period"),
+  dueDateColumn: env("AUTOMATION_NAME_DUE_DATE_COLUMN", "Due Date"),
+  taskStatusColumn: env("AUTOMATION_NAME_TASK_STATUS_COLUMN", "Task Status"),
+  documentCheckColumn: env("AUTOMATION_NAME_DOCUMENT_CHECK_COLUMN", "Document Check"),
+  engagementStatusColumn: env(
+    "AUTOMATION_NAME_ENGAGEMENT_LETTER_STATUS_COLUMN",
+    "Engagement Letter Status",
+  ),
+  clientResponseColumn: env("AUTOMATION_NAME_CLIENT_RESPONSE_COLUMN", "Client Response"),
+  clientResponseDetailsColumn: env(
+    "AUTOMATION_NAME_CLIENT_RESPONSE_DETAILS_COLUMN",
+    "Client Response Details",
+  ),
+  lastClientUpdateColumn: env("AUTOMATION_NAME_LAST_CLIENT_UPDATE_COLUMN", "Last Client Update"),
+  lastUpdatedColumn: env("AUTOMATION_NAME_LAST_UPDATED_COLUMN", "Last Updated"),
+  missingInformationColumn: env("AUTOMATION_NAME_MISSING_INFORMATION_COLUMN", "Missing Information"),
+  clientRequestColumn: env("AUTOMATION_NAME_CLIENT_REQUEST_COLUMN", "Client Request"),
+};
+
 const automationSpecs = [
   {
     key: "active-client-vat-task",
     boardKey: "clients",
     title: "Create VAT task when client becomes active",
     prompt: `Trigger:
-When Onboarding Status changes to Active
+When ${name.onboardingStatusColumn} changes to ${label.onboardingActive}
 
 Conditions:
-- Only if Service Types contains VAT Reporting
+- Only if ${name.serviceTypesColumn} contains ${label.serviceVatReporting}
 
 Actions:
 - Create an item in the Ongoing Tasks board and connect boards:
-  Target board: Ongoing Tasks
-  Connect the triggering Clients item to the newly created Ongoing Tasks item using the Ongoing Tasks board relation column Linked Client File.
+  Target board: ${name.tasksBoard}
+  Connect the triggering ${name.clientsBoard} item to the newly created ${name.tasksBoard} item using the ${name.tasksBoard} board relation column ${name.linkedClientColumn}.
   Item name: Prepare VAT report - {{item name}}
-  Linked Client File: {{item}}
-  Service Type: VAT Reporting
-  Reporting Period: Current month
-  Owner: Assigned Accountant
-  Due Date: 15 days after trigger date
-  Task Status: Not Started`,
+  ${name.linkedClientColumn}: {{item}}
+  ${name.serviceTypeColumn}: ${label.serviceVatReporting}
+  ${name.reportingPeriodColumn}: Current month
+  ${name.ownerColumn}: ${name.assignedAccountantColumn}
+  ${name.dueDateColumn}: 15 days after trigger date
+  ${name.taskStatusColumn}: ${label.taskNotStarted}`,
   },
   {
     key: "active-client-payroll-task",
     boardKey: "clients",
     title: "Create payroll task when client becomes active",
     prompt: `Trigger:
-When Onboarding Status changes to Active
+When ${name.onboardingStatusColumn} changes to ${label.onboardingActive}
 
 Conditions:
-- Only if Service Types contains Payroll
+- Only if ${name.serviceTypesColumn} contains ${label.servicePayroll}
 
 Actions:
 - Create an item in the Ongoing Tasks board and connect boards:
-  Target board: Ongoing Tasks
-  Connect the triggering Clients item to the newly created Ongoing Tasks item using the Ongoing Tasks board relation column Linked Client File.
+  Target board: ${name.tasksBoard}
+  Connect the triggering ${name.clientsBoard} item to the newly created ${name.tasksBoard} item using the ${name.tasksBoard} board relation column ${name.linkedClientColumn}.
   Item name: Run payroll - {{item name}}
-  Linked Client File: {{item}}
-  Service Type: Payroll
-  Reporting Period: Current month
-  Owner: Assigned Accountant
-  Due Date: 10 days after trigger date
-  Task Status: Not Started`,
+  ${name.linkedClientColumn}: {{item}}
+  ${name.serviceTypeColumn}: ${label.servicePayroll}
+  ${name.reportingPeriodColumn}: Current month
+  ${name.ownerColumn}: ${name.assignedAccountantColumn}
+  ${name.dueDateColumn}: 10 days after trigger date
+  ${name.taskStatusColumn}: ${label.taskNotStarted}`,
   },
   {
     key: "active-client-bookkeeping-task",
     boardKey: "clients",
     title: "Create bookkeeping task when client becomes active",
     prompt: `Trigger:
-When Onboarding Status changes to Active
+When ${name.onboardingStatusColumn} changes to ${label.onboardingActive}
 
 Conditions:
-- Only if Service Types contains Bookkeeping
+- Only if ${name.serviceTypesColumn} contains ${label.serviceBookkeeping}
 
 Actions:
 - Create an item in the Ongoing Tasks board and connect boards:
-  Target board: Ongoing Tasks
-  Connect the triggering Clients item to the newly created Ongoing Tasks item using the Ongoing Tasks board relation column Linked Client File.
+  Target board: ${name.tasksBoard}
+  Connect the triggering ${name.clientsBoard} item to the newly created ${name.tasksBoard} item using the ${name.tasksBoard} board relation column ${name.linkedClientColumn}.
   Item name: Bookkeeping monthly close - {{item name}}
-  Linked Client File: {{item}}
-  Service Type: Bookkeeping
-  Reporting Period: Current month
-  Owner: Assigned Accountant
-  Due Date: 25 days after trigger date
-  Task Status: Not Started`,
+  ${name.linkedClientColumn}: {{item}}
+  ${name.serviceTypeColumn}: ${label.serviceBookkeeping}
+  ${name.reportingPeriodColumn}: Current month
+  ${name.ownerColumn}: ${name.assignedAccountantColumn}
+  ${name.dueDateColumn}: 25 days after trigger date
+  ${name.taskStatusColumn}: ${label.taskNotStarted}`,
   },
   {
     key: "task-due-today-owner-notice",
     boardKey: "tasks",
     title: "Notify owner when an open task reaches its due date",
     prompt: `Trigger:
-When Due Date arrives
+When ${name.dueDateColumn} arrives
 Details:
 Time: 9:00 AM
 Timezone: Asia/Jerusalem
 
 Conditions:
-- Only if Task Status is not Done
+- Only if ${name.taskStatusColumn} is not ${label.taskDone}
 
 Actions:
 - Send a notification:
-  Recipient: Owner
-  Message: Task "{{item name}}" is due today and is not marked Done. Please review or update the task status.`,
+  Recipient: ${name.ownerColumn}
+  Message: Task "{{item name}}" is due today and is not marked ${label.taskDone}. Please review or update the task status.`,
   },
   {
     key: "task-waiting-for-client",
     boardKey: "tasks",
     title: "Surface client-blocked tasks",
     prompt: `Trigger:
-When Task Status changes to Waiting for Client
+When ${name.taskStatusColumn} changes to ${label.taskWaitingForClient}
 
 Actions:
-- Set Last Updated to today
+- Set ${name.lastUpdatedColumn} to today
 - Send a notification:
-  Recipient: Owner
+  Recipient: ${name.ownerColumn}
   Message: Task "{{item name}}" is waiting for client input. Please follow up and keep the client file current.
 - Update the linked client file:
-  Linked board relation: Linked Client File
-  Client Response: Needs Review
-  Client Response Details: Task "{{item name}}" is waiting for client input. Check Missing Information / Client Request on the task.
-  Last Client Update: today`,
+  Linked board relation: ${name.linkedClientColumn}
+  ${name.clientResponseColumn}: ${label.clientResponseNeedsReview}
+  ${name.clientResponseDetailsColumn}: Task "{{item name}}" is waiting for client input. Check ${name.missingInformationColumn} / ${name.clientRequestColumn} on the task.
+  ${name.lastClientUpdateColumn}: today`,
   },
   {
     key: "portal-response-review",
     boardKey: "clients",
     title: "Notify accountant when portal response is recorded",
     prompt: `Trigger:
-When Client Response changes to anything other than None
+When ${name.clientResponseColumn} changes to anything other than ${label.clientResponseNone}
 
 Actions:
-- Set Last Client Update to today
+- Set ${name.lastClientUpdateColumn} to today
 - Send a notification:
-  Recipient: Assigned Accountant
-  Message: Client "{{item name}}" submitted a portal response. Review Client Response Details before changing the onboarding or task status.`,
+  Recipient: ${name.assignedAccountantColumn}
+  Message: Client "{{item name}}" submitted a portal response. Review ${name.clientResponseDetailsColumn} before changing the onboarding or task status.`,
   },
   {
     key: "intake-form-defaults",
@@ -141,11 +184,11 @@ Actions:
 When a new item is created
 
 Actions:
-- Change Onboarding Status to Lead
-- Change Document Check to Not Started
-- Change Engagement Letter Status to Not Created
-- Change Client Response to None
-- Set Last Client Update to today`,
+- Change ${name.onboardingStatusColumn} to ${label.onboardingLead}
+- Change ${name.documentCheckColumn} to ${label.documentCheckNotStarted}
+- Change ${name.engagementStatusColumn} to ${label.engagementNotCreated}
+- Change ${name.clientResponseColumn} to ${label.clientResponseNone}
+- Set ${name.lastClientUpdateColumn} to today`,
   },
 ];
 
@@ -195,8 +238,8 @@ function main() {
 }
 
 function boardIdFor(spec) {
-  if (spec.boardKey === "clients") return requireBoardId("Clients", CLIENTS_BOARD_ID);
-  if (spec.boardKey === "tasks") return requireBoardId("Ongoing Tasks", TASKS_BOARD_ID);
+  if (spec.boardKey === "clients") return requireBoardId(name.clientsBoard, CLIENTS_BOARD_ID);
+  if (spec.boardKey === "tasks") return requireBoardId(name.tasksBoard, TASKS_BOARD_ID);
 
   throw new Error(`Unknown board key "${spec.boardKey}" for automation "${spec.key}".`);
 }
@@ -241,4 +284,8 @@ function getArgValue(name) {
   if (index !== -1) return process.argv[index + 1];
 
   return "";
+}
+
+function env(name, fallback) {
+  return process.env[name] || fallback;
 }

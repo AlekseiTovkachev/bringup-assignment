@@ -168,6 +168,11 @@ button:hover {
   background: var(--accent-dark);
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
 .hint,
 .muted {
   color: var(--muted);
@@ -347,6 +352,10 @@ button:hover {
   font-weight: 700;
 }
 
+.response-message.is-error {
+  color: var(--danger);
+}
+
 .not-found {
   min-height: 560px;
   display: grid;
@@ -357,6 +366,14 @@ button:hover {
 
 .not-found h2 {
   color: var(--danger);
+}
+
+.not-found.tone-warning h2 {
+  color: var(--warning);
+}
+
+.not-found.tone-neutral h2 {
+  color: var(--text);
 }
 
 @media (max-width: 840px) {
