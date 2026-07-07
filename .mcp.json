@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "make": {
+      "command": "node",
+      "args": ["scripts/make-mcp.mjs"]
+    }
+  }
+}

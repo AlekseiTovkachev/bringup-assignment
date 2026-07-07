@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make Automation"
+  short_description: "Create and manage Make scenarios from blueprints and MCP."
+  default_prompt: "Use this skill to create, clone, update, or document Make.com automations using the Make API, MCP server, and scenario blueprints."

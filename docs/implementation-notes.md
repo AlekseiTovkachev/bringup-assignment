@@ -85,3 +85,24 @@ After the scripts run, configure the demo views in monday:
 4. Keep dashboards simple: workload by demo staff, overdue or near-due tasks, and clients by onboarding status.
 
 These views are intentionally manual for now because monday's UI has reliable controls for grouping and saved views, while the API behavior for view/group configuration is more account-dependent.
+
+## Live Make Setup
+
+Created on July 7, 2026:
+
+- Make folder `BringUp Assignment`: `365478`
+- Make scenario draft `BringUp - Engagement Letter Hub`: `6468273`
+- monday Clients board: `5099847318`
+- monday Ongoing Tasks board: `5099847320`
+
+The Make engagement-letter scenario is valid but inactive. It uses the monday connection already present in Make and contains:
+
+- `monday:WatchBoardItemsV2` on the Clients board
+- `monday:GetItemV2`
+- a router
+- monday GraphQL update modules for Created/Sent engagement-letter status
+- monday update/comment modules to leave an audit trail
+
+The scenario currently writes a demo document URL rather than creating a real Google Doc. To finish production-grade behavior, add Google Docs and Gmail connections in Make, replace the demo GraphQL link update with `google-docs:createADocumentFromTemplate`, then send the document link through a Gmail module before marking `Engagement Letter Status = Sent`.
+
+The Free Make license reported a two-scenario limit. Because one pre-existing scenario already exists, only the engagement-letter hub was created in Make. The weekly management report blueprint is generated locally at `tmp/make/blueprints/weekly-management-report.json`.

@@ -7,6 +7,7 @@ MVP planning and implementation assets for a monday.com, Make, and client portal
 - `docs/` - specification, implementation notes, flowcharts, and interview preparation.
 - `scripts/` - monday.com board creation and demo data scripts.
 - `portal/` - demo client portal prototype.
+- `skills/make-automation/` - project-local agent skill for Make API, MCP, and scenario blueprint work.
 
 Copy `.env.example` to `.env` for local monday.com/API configuration. The real `.env` file is intentionally ignored.
 
@@ -36,3 +37,35 @@ node scripts/seed-demo-data.mjs --with-client-backlinks
 ```
 
 Use the optional mirror/backlink path only if the monday workspace stays responsive. The default setup is enough for the implementation demo.
+
+## Make MCP
+
+This repo includes a project MCP config at `.mcp.json`. MCP clients that read project configs can start Make through:
+
+```bash
+node scripts/make-mcp.mjs
+```
+
+Set `MAKE_MCP_TOKEN` and `MAKE_ZONE` in `.env` to use Make's direct MCP token URL. Without `MAKE_MCP_TOKEN`, the launcher falls back to Make's OAuth MCP endpoint.
+
+For scenario creation and cloning, use the project-local skill at `skills/make-automation/SKILL.md`.
+
+The current Make workspace uses:
+
+- Organization: `8285840`
+- Team: `2094513`
+- Folder: `365478` (`BringUp Assignment`)
+- Engagement-letter scenario draft: `6468273` (`BringUp - Engagement Letter Hub`)
+
+The engagement-letter scenario is created but intentionally inactive. It watches the `Clients` board, reads the changed client file, and routes File Opened / Created states through monday GraphQL update modules. Replace the demo document-link update with real Google Docs and Gmail modules after those Make connections and the engagement-letter template are available.
+
+Useful Make scripts:
+
+```bash
+node scripts/inspect-make-mcp.mjs scenario
+node scripts/build-make-blueprints.mjs
+node scripts/create-make-scenario-from-blueprint.mjs tmp/make/blueprints/engagement-letter-hub.json
+node scripts/export-make-scenario.mjs 6468273 tmp/make/created-engagement-letter-hub-6468273.json
+```
+
+The Free Make license currently allows 2 scenarios. One pre-existing scenario plus the engagement-letter scenario uses that capacity, so the weekly management report is generated as a local blueprint at `tmp/make/blueprints/weekly-management-report.json` but was not created in Make.
