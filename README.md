@@ -29,6 +29,20 @@ node scripts/seed-demo-data.mjs
 
 `--fresh` archives the board IDs currently configured in `.env` before creating a new set. That is useful while polishing the demo, but do not use it casually after manual edits in monday.
 
+## monday Automations
+
+The public monday.com GraphQL API does not expose an automation-creation mutation, so automation setup uses the Monday MCP `create_automation` tool. The repo keeps the MCP prompts in a script so the setup is repeatable:
+
+```bash
+# Human-readable prompts.
+node scripts/add-monday-automations.mjs
+
+# JSON payloads for the Monday MCP create_automation tool.
+node scripts/add-monday-automations.mjs --format=mcp-json
+```
+
+The default board IDs target the current demo boards. Override them for a fresh workspace with `--clients-board-id=<id>` and `--tasks-board-id=<id>`, or fill `MONDAY_CLIENTS_BOARD_ID` and `MONDAY_ONGOING_TASKS_BOARD_ID` in `.env`.
+
 Optional heavier demo extras:
 
 ```bash
