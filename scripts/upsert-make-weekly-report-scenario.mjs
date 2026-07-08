@@ -28,7 +28,8 @@ const columns = {
   taskLinkedClient: env("MONDAY_TASK_LINKED_CLIENT_COLUMN_ID", "linked_client_file"),
   taskServiceType: env("MONDAY_TASK_SERVICE_TYPE_COLUMN_ID", "service_type"),
   taskReportingPeriod: env("MONDAY_TASK_REPORTING_PERIOD_COLUMN_ID", "reporting_period"),
-  taskOwner: env("MONDAY_TASK_OWNER_COLUMN_ID", "owner"),
+  taskOwnerPeople: env("MONDAY_TASK_OWNER_COLUMN_ID", "owner"),
+  taskDemoOwnerStaff: env("MONDAY_TASK_DEMO_OWNER_STAFF_COLUMN_ID", "demo_owner_staff"),
   taskDueDate: env("MONDAY_TASK_DUE_DATE_COLUMN_ID", "due_date"),
   taskStatus: env("MONDAY_TASK_STATUS_COLUMN_ID", "task_status"),
   taskClientRequest: env("MONDAY_TASK_CLIENT_REQUEST_COLUMN_ID", "client_request"),
@@ -146,11 +147,12 @@ function taskColumns() {
     columns.taskLinkedClient,
     columns.taskServiceType,
     columns.taskReportingPeriod,
-    columns.taskOwner,
+    columns.taskOwnerPeople,
+    columns.taskDemoOwnerStaff,
     columns.taskDueDate,
     columns.taskStatus,
     columns.taskClientRequest,
-  ];
+  ].filter(Boolean);
 }
 
 function mondayListBoardItems(id, boardId, x, y, filterToGetColumnValues) {
@@ -259,7 +261,7 @@ function taskRowTemplate(sourceId = 1) {
   <td>{{${sourceId}.mappable_column_values.${columns.taskLinkedClient}.text}}</td>
   <td>{{${sourceId}.mappable_column_values.${columns.taskServiceType}.text}}</td>
   <td>{{${sourceId}.mappable_column_values.${columns.taskReportingPeriod}.text}}</td>
-  <td>{{${sourceId}.mappable_column_values.${columns.taskOwner}.text}}</td>
+  <td>${taskOwnerExpression(sourceId)}</td>
   <td>{{${sourceId}.mappable_column_values.${columns.taskDueDate}.text}}</td>
   <td>{{${sourceId}.mappable_column_values.${columns.taskStatus}.text}}</td>
 </tr>`;
@@ -267,7 +269,7 @@ function taskRowTemplate(sourceId = 1) {
 
 function ownerWorkloadRowTemplate(sourceId) {
   return `<tr>
-  <td>{{${sourceId}.mappable_column_values.${columns.taskOwner}.text}}</td>
+  <td>${taskOwnerExpression(sourceId)}</td>
   <td><a href="https://view.monday.com/items/{{${sourceId}.id}}">{{${sourceId}.name}}</a></td>
   <td>{{${sourceId}.mappable_column_values.${columns.taskLinkedClient}.text}}</td>
   <td>{{${sourceId}.mappable_column_values.${columns.taskServiceType}.text}}</td>
@@ -281,7 +283,7 @@ function clientRowTemplate(sourceId) {
   <td><a href="https://view.monday.com/items/{{${sourceId}.id}}">{{${sourceId}.name}}</a></td>
   <td>{{${sourceId}.mappable_column_values.${columns.clientEmail}.email}}</td>
   <td>{{${sourceId}.mappable_column_values.${columns.clientOnboardingStatus}.text}}</td>
-  <td>{{${sourceId}.mappable_column_values.${columns.clientMissingInformation}.text}}</td>
+  <td>${missingInformationExpression(sourceId)}</td>
 </tr>`;
 }
 
@@ -412,7 +414,35 @@ function missingInformationConditions(sourceId) {
         o: "text:exist",
       },
     ],
+    [
+      {
+        a: `{{${sourceId}.mappable_column_values.${columns.clientMissingInformation}.value}}`,
+        o: "text:exist",
+      },
+    ],
+    [
+      {
+        a: `{{${sourceId}.mappable_column_values.${columns.clientMissingInformation}}}`,
+        o: "text:exist",
+      },
+    ],
   ];
+}
+
+function taskOwnerExpression(sourceId) {
+  const peopleOwner = `${sourceId}.mappable_column_values.${columns.taskOwnerPeople}.text`;
+
+  if (!columns.taskDemoOwnerStaff) {
+    return `{{${peopleOwner}}}`;
+  }
+
+  const demoOwner = `${sourceId}.mappable_column_values.${columns.taskDemoOwnerStaff}.text`;
+  return `{{ifempty(${demoOwner}; ${peopleOwner})}}`;
+}
+
+function missingInformationExpression(sourceId) {
+  const missingInfo = `${sourceId}.mappable_column_values.${columns.clientMissingInformation}`;
+  return `{{ifempty(${missingInfo}.text; ifempty(${missingInfo}.value; ${missingInfo}))}}`;
 }
 
 function withFilter(module, name, conditions) {
