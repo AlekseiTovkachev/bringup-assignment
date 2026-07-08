@@ -3,7 +3,7 @@ import { PublicError, validatePortalResponse } from "../lib/validation.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed." });
+    return res.status(405).json({ error: "שיטת הבקשה אינה נתמכת." });
   }
 
   try {
@@ -21,5 +21,5 @@ function handleError(res, error) {
   }
 
   console.error(error);
-  return res.status(500).json({ error: "The client update could not be saved." });
+  return res.status(500).json({ error: "לא ניתן לשמור את עדכון הלקוח." });
 }

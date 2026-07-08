@@ -1,16 +1,18 @@
 # Interview Questions
 
-These are questions worth asking or mentioning during the assignment discussion. They show the assumptions behind the MVP and the places where a real implementation would need firm-specific decisions.
+These are an internal question bank for interview discussion. Do not send all of them up front; most are minor enough to decide independently and state as assumptions.
+
+For a shorter sendable version focused on assignment alignment, use `docs/assignment-clarification-questions.md`.
+
+Confirmed by BringUp: visible project materials should be Hebrew, code can stay English, and demo examples should be created independently rather than requested from existing client files. Additional questions are encouraged as characterization and implementation progress, with Shalom Schwartz from BringUp's development/implementation team included on follow-ups.
 
 ## Process And Scope
 
-1. What language should the system use: Hebrew, English, or a mix across monday, the portal, emails, and generated documents?
-2. Can you provide examples of the current Excel files, email templates, engagement-letter template, onboarding questionnaire, recurring task checklist, and manager reports?
-3. What client fields are required beyond the assignment fields, and do they change by entity type?
-4. What documents are required for onboarding each entity type, and who confirms they are complete and valid?
-5. What are the firm's actual service types, recurrence rules, and deadline rules for VAT, payroll, bookkeeping, deductions, and annual reports?
-6. Is historical Excel migration expected now, or is it explicitly outside the MVP?
-7. Are there duplicate-client rules, such as blocking a second lead with the same legal/tax ID?
+1. What client fields are required beyond the assignment fields, and do they change by entity type?
+2. What documents are required for onboarding each entity type, and who confirms they are complete and valid?
+3. What are the firm's actual service types, recurrence rules, and deadline rules for VAT, payroll, bookkeeping, deductions, and annual reports?
+4. Is historical Excel migration expected now, or is it explicitly outside the MVP?
+5. Are there duplicate-client rules, such as blocking a second lead with the same legal/tax ID?
 
 ## Client Lifecycle
 
@@ -34,13 +36,13 @@ These are questions worth asking or mentioning during the assignment discussion.
 2. What client-facing information may the portal show, and what must remain internal?
 3. What should the portal write-back be allowed to change: only a comment/client response, or also a controlled status field?
 4. Should the portal support choosing from a list of clients for the demo, tax-ID lookup, or both?
-5. Does the portal need to be Hebrew/right-to-left for client-facing use?
+5. Does the Hebrew/right-to-left portal wording match the firm's tone for client-facing use?
 
 ## Automations And Integrations
 
 1. Should task generation from service types be handled by monday.com automations, Make, or a hybrid?
 2. Who should receive automation failure notifications?
-3. Should engagement-letter generation and email sending be one Make scenario or two separate scenarios?
+3. Is the single router-based engagement-letter Make hub acceptable operationally, or should it be split into separate scenarios if the Make plan allows it later?
 4. What should happen if a client has no email address or the engagement-letter link is missing?
 5. Should the weekly management report be an email, a generated document, or both, and who receives it?
 6. Should the report include only exceptions and risks, or all open work?

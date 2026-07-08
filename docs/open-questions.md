@@ -2,23 +2,28 @@
 
 This document captures ambiguity we identify while designing the assignment solution. These questions are intended to be asked back to the client or mentioned as assumptions in the final specification.
 
+## Confirmed By BringUp
+
+- Visible project materials should be Hebrew: monday boards and statuses, client-facing interface, forms/questionnaires, email and letter templates, characterization documents, flowcharts, and presentation materials.
+- Implementation details and code can remain in English.
+- Demo examples should be created independently for the homework instead of waiting for current client files, spreadsheets, templates, checklists, or reports.
+- Additional questions are encouraged as characterization and implementation progress. Include Shalom Schwartz from BringUp's development/implementation team on follow-up questions.
+
 ## Questions To Ask The Firm
 
 These are the highest-value questions to ask or mention before implementation. None of them should block the assignment MVP, but each one affects the production version.
 
-1. What language should the system use: Hebrew, English, or a mix across monday, the portal, emails, and generated documents?
-2. Can you provide examples of the current Excel files, email templates, engagement-letter template, onboarding questionnaire, recurring task checklist, and manager reports?
-3. What client fields are required beyond the assignment fields, and do they change by entity type?
-4. What documents are required for onboarding each entity type, and who confirms they are complete and valid?
-5. What are the firm's actual service types, recurrence rules, and deadline rules for VAT, payroll, bookkeeping, and annual reports?
-6. Are ongoing tasks owned by the assigned accountant by default, or are some services routed to specialists?
-7. When is a client file considered active in the firm's real process: after documents are approved, after engagement letter is sent, after signature, or after manual approval?
-8. Should the client portal require authentication, such as a magic link, or is tax-ID lookup acceptable only for the demo?
-9. What client-facing information may the portal show, and what must remain internal?
-10. Who should have access to all client files in monday, and who should see only assigned work?
-11. Should the weekly management report be an email, a generated document, or both, and who receives it?
-12. Is historical Excel migration expected now, or is it explicitly outside the MVP?
-13. If AI is discussed during the interview, should it be treated only as a development aid, or is the firm interested in future product-level AI assistance?
+1. What client fields are required beyond the assignment fields, and do they change by entity type?
+2. What documents are required for onboarding each entity type, and who confirms they are complete and valid?
+3. What are the firm's actual service types, recurrence rules, and deadline rules for VAT, payroll, bookkeeping, and annual reports?
+4. Are ongoing tasks owned by the assigned accountant by default, or are some services routed to specialists?
+5. When is a client file considered active in the firm's real process: after documents are approved, after engagement letter is sent, after signature, or after manual approval?
+6. Should the client portal require authentication, such as a magic link, or is tax-ID lookup acceptable only for the demo?
+7. What client-facing information may the portal show, and what must remain internal?
+8. Who should have access to all client files in monday, and who should see only assigned work?
+9. Should the weekly management report be an email, a generated document, or both, and who receives it?
+10. Is historical Excel migration expected now, or is it explicitly outside the MVP?
+11. If AI is discussed during the interview, should it be treated only as a development aid, or is the firm interested in future product-level AI assistance?
 
 ## Resolved For MVP
 
@@ -120,9 +125,9 @@ Reasoning: these automations directly address the assignment's pain points: manu
 
 **Should engagement-letter generation and email sending be one Make scenario or two?**
 
-Recommended assumption: use two separate Make scenarios. The first generates the Google Docs engagement letter when the client file reaches `File Opened`, saves the document link, and sets `Engagement Letter Status = Created`. The second sends the Gmail message when the document is created and required email/link fields exist, then sets `Engagement Letter Status = Sent`.
+Resolved MVP choice: use one Make hub scenario with a router. The scenario watches monday item changes, fetches the full client file, then routes to either the Google Docs generation branch or the Gmail send branch.
 
-Reasoning: document creation can succeed even if email sending cannot. Separating the scenarios gives clearer error handling and makes it easier to explain the integration flow during the interview.
+Reasoning: the Make Free license may limit the workspace to two live scenarios, so a single engagement-letter hub leaves room for the weekly management report. The router still keeps generation and sending logically separated: generation runs when the client file reaches `File Opened`; sending runs only after `Engagement Letter Status = Created` and the email/link fields exist.
 
 **Should the weekly management report be an email or a generated document?**
 
@@ -162,9 +167,9 @@ Reasoning: a single coherent story is easier to present and defend than disconne
 
 **What current firm materials should be requested before implementation?**
 
-Recommended question to ask: can the firm provide examples of the current spreadsheets, email templates, engagement-letter template, onboarding questionnaire, recurring task checklist, and any existing client status reports?
+Resolved homework choice: do not request current firm materials for this assignment. Build reasonable self-contained demo examples for spreadsheets, email copy, engagement-letter text, onboarding form questions, recurring-task checklists, and management reports.
 
-Reasoning: the assignment says the firm currently works with Excel and email. Existing artifacts reveal the firm's real terminology, required fields, service categories, deadlines, and communication style.
+Reasoning: BringUp replied that demo examples should be built independently for the homework. In a real project, existing artifacts would still be requested because they reveal the firm's real terminology, required fields, service categories, deadlines, and communication style.
 
 ## Still Open
 
@@ -180,13 +185,13 @@ Reasoning: accounting-client data is sensitive. If AI is ever added to the produ
 
 **What language should the system use?**
 
-Recommended question to ask: should the monday boards, client portal, email templates, and generated documents be in Hebrew, English, or a mix?
+Resolved MVP choice: use Hebrew for visible demo surfaces: monday labels and statuses, portal UI, portal API messages, forms/questionnaires, engagement-letter document, Gmail engagement-letter email, automation prompts, default weekly report email, characterization documents, flowcharts, and presentation materials.
 
-Recommended assumption for the assignment: build the specification and technical implementation notes in English, but keep client-facing labels and messages ready to translate to Hebrew. For a real firm whose clients are Hebrew speakers, the client portal, engagement-letter email, intake form, and client-facing statuses should likely be Hebrew.
+Implementation note: keep code identifiers, environment variable names, and API column IDs in English for maintainability. The scripts still support `--lang=en` for intentionally creating an English monday workspace.
 
-RTL usability question to validate: does monday provide a comfortable Hebrew/right-to-left editing experience for the firm's users, especially in table/grid views, forms, dashboards, automations, and mixed Hebrew-English values?
+Remaining validation question: does monday provide a comfortable Hebrew/right-to-left editing experience for the firm's users, especially in table/grid views, forms, dashboards, automations, and mixed Hebrew-English values?
 
-Reasoning: the assignment is written in Hebrew and the firm's clients are likely Hebrew speakers, so production client-facing workflows should probably be Hebrew. For the interview assignment, English may be acceptable for implementation clarity, but this should be confirmed before final delivery. Hebrew labels are not the same as full Excel-like RTL ergonomics, so the actual monday workspace should be tested with Hebrew sample data.
+Reasoning: the assignment is written in Hebrew and the firm's clients are likely Hebrew speakers, so production client-facing workflows should be Hebrew. Hebrew labels are not the same as full RTL ergonomics, so the actual monday workspace should be tested with Hebrew sample data.
 
 **What exact client data is required beyond the fields listed in the assignment?**
 

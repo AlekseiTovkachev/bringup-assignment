@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>מסמך אפיון והגשה - מערכת ניהול משרד רואי חשבון</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 17mm 15mm 18mm;
+    }
+
+    :root {
+      --ink: #17202a;
+      --muted: #53606d;
+      --line: #cfd7df;
+      --soft: #f3f6f8;
+      --soft-2: #eef4ed;
+      --accent: #0b6b63;
+      --accent-2: #8a4f19;
+      --risk: #9b2c2c;
+      --page: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--page);
+      font-family: Arial, "Noto Sans Hebrew", "Helvetica Neue", sans-serif;
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.22;
+      break-after: avoid;
+    }
+
+    h1 {
+      font-size: 29px;
+      color: #102a43;
+    }
+
+    h2 {
+      margin-top: 20px;
+      padding-top: 8px;
+      border-top: 1.5px solid var(--line);
+      font-size: 19px;
+      color: #102a43;
+    }
+
+    h3 {
+      margin-top: 14px;
+      font-size: 15px;
+      color: var(--accent);
+    }
+
+    p {
+      margin: 6px 0;
+    }
+
+    ul,
+    ol {
+      margin: 6px 0 8px;
+      padding-right: 22px;
+    }
+
+    li {
+      margin: 2px 0;
+    }
+
+    strong {
+      color: #102a43;
+    }
+
+    .cover {
+      min-height: 230px;
+      padding: 18px 20px;
+      border: 2px solid #102a43;
+      background: linear-gradient(180deg, #f8fafb 0%, #ffffff 76%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .cover-kicker {
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .cover-subtitle {
+      margin-top: 12px;
+      max-width: 620px;
+      font-size: 15px;
+      color: var(--muted);
+    }
+
+    .cover-meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .meta-box,
+    .note,
+    .status-box {
+      border: 1px solid var(--line);
+      background: var(--soft);
+      border-radius: 6px;
+      padding: 9px 10px;
+      break-inside: avoid;
+    }
+
+    .meta-label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .meta-value {
+      display: block;
+      margin-top: 2px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .three-col {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+
+    .status-box h3 {
+      margin-top: 0;
+    }
+
+    .implemented {
+      border-right: 4px solid var(--accent);
+      background: var(--soft-2);
+    }
+
+    .manual {
+      border-right: 4px solid var(--accent-2);
+      background: #fff8ef;
+    }
+
+    .optional {
+      border-right: 4px solid #60738a;
+      background: #f4f7fb;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 12px;
+      break-inside: avoid;
+    }
+
+    .table th,
+    .table td {
+      border: 1px solid var(--line);
+      padding: 6px 7px;
+      vertical-align: top;
+      text-align: right;
+    }
+
+    .table th {
+      background: #e9eef2;
+      font-weight: 700;
+    }
+
+    .page-break {
+      break-before: page;
+    }
+
+    .diagram {
+      margin: 10px 0 16px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+      break-inside: avoid;
+    }
+
+    .diagram h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      color: #102a43;
+    }
+
+    .diagram-page {
+      break-before: page;
+    }
+
+    .mermaid-image {
+      display: block;
+      width: 100%;
+      max-height: 205mm;
+      object-fit: contain;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .node,
+    .decision,
+    .branch {
+      border: 1px solid #b8c4ce;
+      border-radius: 6px;
+      background: #ffffff;
+      padding: 6px 8px;
+      min-height: 31px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .decision {
+      border-color: var(--accent);
+      background: #edf8f6;
+      color: #0b4f49;
+    }
+
+    .branch {
+      border-color: #d0b48e;
+      background: #fff8ef;
+      color: #70400f;
+    }
+
+    .arrow {
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .split.three {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .branch-title {
+      margin-bottom: 4px;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .compact-list {
+      columns: 2;
+      column-gap: 22px;
+    }
+
+    .footer-note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    @media print {
+      .cover {
+        min-height: 230px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div>
+      <div class="cover-kicker">מסמך אפיון והגשה</div>
+      <h1>מערכת ניהול לקוחות, משימות ואוטומציות למשרד רואי חשבון</h1>
+      <p class="cover-subtitle">
+        אפיון מעשי לפתרון המבוסס על monday.com, אוטומציות Make, פורטל לקוח חיצוני ודשבורד ניהולי.
+        המסמך מרכז את מבנה המערכת, תהליכי העבודה, גבולות המימוש, הנחות העבודה ושאלות פתוחות להמשך.
+      </p>
+    </div>
+    <div class="cover-meta">
+      <div class="meta-box">
+        <span class="meta-label">קהל יעד</span>
+        <span class="meta-value">משרד רואי חשבון בינוני</span>
+      </div>
+      <div class="meta-box">
+        <span class="meta-label">היקף</span>
+        <span class="meta-value">הגשת מטלת בית</span>
+      </div>
+      <div class="meta-box">
+        <span class="meta-label">שפה גלויה</span>
+        <span class="meta-value">עברית וימין לשמאל</span>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <h2>תקציר מנהלים</h2>
+    <p>
+      הפתרון נותן למשרד שליטה על קליטת לקוחות, משימות שוטפות, מכתבי התקשרות, דיווחים ניהוליים ושקיפות בסיסית ללקוח.
+      monday.com משמשת כמערכת העבודה המרכזית, Make מחבר בין monday, Google Docs ו-Gmail, והפורטל החיצוני מציג ללקוח מידע מוגבל ובטוח יחסית לצורך הדגמה.
+    </p>
+    <p>
+      המימוש אינו מחליף מערכת הנהלת חשבונות. הוא מנהל תהליך תפעולי: מי הלקוח, באיזה שלב התיק, אילו משימות פתוחות, מי אחראי, מה חסר מהלקוח ומה נשלח אליו.
+    </p>
+
+    <div class="three-col">
+      <div class="status-box implemented">
+        <h3>נכלל בהגשה</h3>
+        <ul>
+          <li>סקריפטים ליצירת לוחות monday ונתוני דוגמה.</li>
+          <li>לוחות לקוחות, משימות שוטפות וצוות לדוגמה.</li>
+          <li>אוטומציות monday פעילות לתהליך העבודה.</li>
+          <li>תרחיש Make למכתב התקשרות ותרחיש דיווח שבועי.</li>
+          <li>פורטל לקוח בעברית עם קריאה וכתיבה מבוקרת ל-monday.</li>
+        </ul>
+      </div>
+      <div class="status-box manual">
+        <h3>השלמה ואימות</h3>
+        <ul>
+          <li>דשבורד ניהולי מוקם ב-monday לפי ההגדרה במסמך.</li>
+          <li>טופס קליטה מוגדר דרך כלי הטפסים של monday או תור קליטה.</li>
+          <li>בדיקת מסלול מלא של מכתב התקשרות ואימייל מול חשבונות חיים.</li>
+          <li>עדכון משתני סביבה ב-Vercel לאחר החלפת לוחות.</li>
+        </ul>
+      </div>
+      <div class="status-box optional">
+        <h3>אופציונלי להמשך</h3>
+        <ul>
+          <li>אימות פורטל באמצעות קישור קסם או התחברות.</li>
+          <li>חתימה דיגיטלית על מכתב התקשרות.</li>
+          <li>מנוע מלא לכללי מועדים וחזרתיות.</li>
+          <li>ייבוא היסטורי מאקסלים קיימים.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>תחום המערכת וגבולות</h2>
+    <p>
+      המערכת מתמקדת בניהול עבודה ולא בתוכן החשבונאי עצמו. היא מתאימה להגשה קצרה שבה צריך להראות חשיבה מערכתית, מימוש טכני ויכולת להסביר החלטות.
+    </p>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>בתחום</th>
+          <th>מחוץ לתחום</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>קליטת ליד, פתיחת תיק לקוח, שיוך רואה חשבון, ניהול סטטוס קליטה וסוגי שירות.</td>
+          <td>הנהלת חשבונות בפועל, ספר ראשי, חישובי מס, דוחות כספיים ותשלומים.</td>
+        </tr>
+        <tr>
+          <td>משימות שוטפות לפי לקוח, תקופת דיווח, מועד יעד, אחראי וסטטוס.</td>
+          <td>מנוע מלא לכל סוגי המועדים הרגולטוריים בכל תרחיש אמיתי.</td>
+        </tr>
+        <tr>
+          <td>מכתבי התקשרות דרך Google Docs ושליחה דרך Gmail באמצעות Make.</td>
+          <td>חתימה אלקטרונית, ארכיון מסמכים מלא והרשאות מתקדמות.</td>
+        </tr>
+        <tr>
+          <td>פורטל לקוח להגשה עם סטטוס, בקשות פתוחות ותגובה מבוקרת.</td>
+          <td>אימות ייצור מלא, הרשאות לפי תפקיד וחשיפת מסמכים רגישים.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>תהליך קליטת לקוח</h2>
+    <ol>
+      <li>נוצר ליד ידנית או דרך טופס קליטה.</li>
+      <li>מנהל או רואה חשבון בודק פרטים בסיסיים ומשייך אחראי.</li>
+      <li>נשלח שאלון קליטה והסטטוס מתעדכן ל-<strong>שאלון נשלח</strong>.</li>
+      <li>הלקוח מחזיר שאלון ומסמכים.</li>
+      <li>הצוות מסמן <strong>מסמכים התקבלו</strong> כאשר כל החומר הראשוני הגיע.</li>
+      <li>בדיקת המסמכים מנוהלת בשדה נפרד כדי לא למחוק את שלב הקליטה.</li>
+      <li>אם חסר מידע, השדה <strong>מידע חסר</strong> מתעדכן והלקוח רואה בקשה בפורטל.</li>
+      <li>כאשר המשרד מקבל את הלקוח, הסטטוס עובר ל-<strong>תיק נפתח</strong>.</li>
+      <li>Make יוצר מכתב התקשרות, שומר קישור ב-monday ושולח אימייל ללקוח.</li>
+      <li>לאחר אישור מוכנות, הסטטוס עובר ל-<strong>פעיל</strong> ונוצרות משימות שוטפות לפי השירותים שנבחרו.</li>
+    </ol>
+
+    <h2>מבנה לוחות monday</h2>
+    <h3>לוח לקוחות</h3>
+    <p>
+      כל פריט בלוח מייצג תיק לקוח תפעולי. שם הפריט הראשי הוא שם הלקוח או העסק, כדי לא ליצור כפילות מיותרת.
+    </p>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>שדה</th>
+          <th>מטרה</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>שם לקוח, ח.פ / תעודת זהות, סוג ישות, איש קשר, אימייל, טלפון</td>
+          <td>פרטי תיק ותקשורת בסיסיים.</td>
+        </tr>
+        <tr>
+          <td>רואה חשבון אחראי / איש צוות אחראי לדוגמה</td>
+          <td>בעלות תפעולית על התיק וחיתוך עומסים בדשבורד.</td>
+        </tr>
+        <tr>
+          <td>סטטוס קליטה</td>
+          <td>ליד, שאלון נשלח, מסמכים התקבלו, תיק נפתח, פעיל.</td>
+        </tr>
+        <tr>
+          <td>סוגי שירות</td>
+          <td>הנהלת חשבונות, שכר, דיווח חודשי, מע"מ, ניכויים, דוח שנתי וכדומה.</td>
+        </tr>
+        <tr>
+          <td>מידע חסר, בדיקת מסמכים</td>
+          <td>ניהול חסמים בלי לשנות את שלב הקליטה הראשי.</td>
+        </tr>
+        <tr>
+          <td>סטטוס מכתב התקשרות, קישור מכתב התקשרות</td>
+          <td>נקודות כתיבה של Make אחרי יצירה ושליחה.</td>
+        </tr>
+        <tr>
+          <td>תגובת לקוח, פירוט תגובת לקוח, עדכון אחרון מהלקוח</td>
+          <td>כתיבה מבוקרת מהפורטל לצורך בדיקת הצוות.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>לוח משימות שוטפות</h3>
+    <p>
+      כל פריט הוא משימה מתוארכת לתקופת דיווח מסוימת. איחור מחושב לפי תאריך יעד וסטטוס, ולא נשמר כסטטוס עצמאי.
+    </p>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>שדה</th>
+          <th>מטרה</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>תיק לקוח מקושר</td>
+          <td>קישור בין העבודה השוטפת לתיק הלקוח.</td>
+        </tr>
+        <tr>
+          <td>אחראי / איש צוות אחראי לדוגמה</td>
+          <td>בעלות על המשימה וחישוב עומס.</td>
+        </tr>
+        <tr>
+          <td>תאריך יעד, תקופת דיווח, סוג שירות</td>
+          <td>הקשר תפעולי למשימה ולדשבורד.</td>
+        </tr>
+        <tr>
+          <td>סטטוס משימה</td>
+          <td>לא התחיל, בטיפול, ממתין ללקוח, בוצע.</td>
+        </tr>
+        <tr>
+          <td>מידע חסר / בקשה מהלקוח</td>
+          <td>הסבר ברור למה המשימה ממתינה ומה הלקוח צריך לעשות.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>לוח צוות לדוגמה</h3>
+    <p>
+      בסביבת monday עם משתמש אחד, לוח צוות מאפשר להציג כמה רואי חשבון, תפקידים ועומסים בלי להזמין משתמשים אמיתיים.
+      בסביבת ייצור משתמשים בעמודות אנשים אמיתיות של monday.
+    </p>
+
+    <h2>אוטומציות</h2>
+    <div class="two-col">
+      <div>
+        <h3>בתוך monday</h3>
+        <ul>
+          <li>כאשר תיק לקוח עובר ל-<strong>פעיל</strong>, נוצרות משימות שוטפות מקושרות לפי סוגי השירות.</li>
+          <li>כאשר משימה מגיעה לתאריך יעד והסטטוס אינו <strong>בוצע</strong>, נשלחת התראה לאחראי.</li>
+          <li>כאשר משימה עוברת ל-<strong>ממתין ללקוח</strong>, הצוות מקבל אינדיקציה שהלקוח צריך להשלים מידע.</li>
+          <li>כאשר מתקבלת תגובת לקוח מהפורטל, רואה החשבון האחראי מקבל התראה לבדיקה.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>דרך Make</h3>
+        <ul>
+          <li>תרחיש מכתב התקשרות מרכזי: טריגר מ-monday, שליפת פרטי לקוח מלאים, יצירת מסמך ושליחת אימייל לפי תנאים.</li>
+          <li>תרחיש דיווח שבועי: איסוף משימות פתוחות, משימות באיחור, משימות שממתינות ללקוח ועומס לפי רואה חשבון.</li>
+          <li>בדיקות בסיסיות מונעות שליחה כאשר חסר אימייל או קישור למסמך.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>מכתב התקשרות ודיווח שבועי ב-Make</h2>
+    <p>
+      כדי להתאים למגבלת חשבון ההגשה, יצירת מכתב ההתקשרות ושליחתו מרוכזות בתרחיש Make אחד עם נתב. הפרדה לוגית נשמרת בענפים:
+      ענף יצירה פועל כאשר תיק נפתח והמכתב עדיין לא נוצר או נשלח; ענף שליחה פועל רק כאשר סטטוס המכתב הוא <strong>נוצר</strong> וקיימים אימייל וקישור תקינים.
+    </p>
+    <p>
+      הדיווח השבועי נשלח כמייל ניהולי בעברית. הוא אמור לכלול משימות באיחור, משימות לשבוע הקרוב, משימות שממתינות ללקוח, עומס לפי אחראי ותיקי לקוח עם מידע חסר.
+    </p>
+
+    <h2>פורטל לקוח</h2>
+    <p>
+      הפורטל הוא ממשק חיצוני בעברית, מחובר ל-monday דרך צד שרת בלבד. הדפדפן אינו מקבל אסימון monday.
+      לצורך ההגשה הלקוח מזדהה באמצעות בחירה מרשימה או חיפוש לפי ח.פ / תעודת זהות. בסביבת ייצור יש להחליף זאת באימות חזק יותר, למשל קישור חד-פעמי למייל.
+    </p>
+    <ul class="compact-list">
+      <li>הצגת סטטוס תיק בשפה ידידותית.</li>
+      <li>הצגת משימות ובקשות פתוחות הרלוונטיות ללקוח.</li>
+      <li>הסתרת הערות פנימיות, מזהי monday, דשבורדים ועומסי צוות.</li>
+      <li>אפשרות לשלוח תגובה מוגבלת שנשמרת בשדות תגובת לקוח.</li>
+      <li>אין אישור מסמכים אוטומטי ואין קידום סטטוס פנימי ללא בדיקת צוות.</li>
+    </ul>
+
+    <h2>דשבורד מנהל</h2>
+    <p>
+      הדשבורד מוקם ב-monday ומחובר ללוחות הלקוחות והמשימות. המטרה היא מבט מהיר על עומס וסיכון, לא מסך עבודה מלא.
+    </p>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>תצוגה</th>
+          <th>הגדרה מומלצת</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>עומס לפי רואה חשבון</td>
+          <td>תרשים עמודות של משימות פתוחות לפי אחראי או איש צוות לדוגמה.</td>
+        </tr>
+        <tr>
+          <td>משימות באיחור</td>
+          <td>טבלה של משימות שתאריך היעד שלהן עבר והסטטוס אינו בוצע.</td>
+        </tr>
+        <tr>
+          <td>לקוחות לפי סטטוס קליטה</td>
+          <td>תרשים ספירה לפי ליד, שאלון נשלח, מסמכים התקבלו, תיק נפתח ופעיל.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>טופס קליטה</h2>
+    <p>
+      טופס קליטה הוא תוספת שימושית, אך אינו תנאי לליבת המערכת. הטופס אוסף שם לקוח או עסק, ח.פ / תעודת זהות, סוג ישות, איש קשר, אימייל,
+      טלפון, סוגי שירות מבוקשים, הערות ואישור הסכמה אם נדרש. בהגדרת ההגשה, כלי הטפסים של monday עשוי ליצור לוח תגובות נפרד; במקרה כזה הוא משמש כתור קליטה שממנו מעבירים או ממפים לידים ללוח הלקוחות.
+    </p>
+
+    <h2>הנחות עבודה ושאלות פתוחות</h2>
+    <div class="two-col">
+      <div>
+        <h3>הנחות לאב הטיפוס</h3>
+        <ul>
+          <li>פריט בלוח הלקוחות הוא תיק לקוח תפעולי.</li>
+          <li>מידע חסר אינו מחליף את סטטוס הקליטה.</li>
+          <li>מסמכים התקבלו פירושו שהחומר הגיע, לא שהוא אושר מקצועית.</li>
+          <li>תיק נפתח מפעיל יצירת מכתב התקשרות.</li>
+          <li>פעיל נקבע ידנית אחרי אישור מוכנות.</li>
+          <li>משימות שוטפות הן מופעים מתוארכים לפי תקופת דיווח.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>שאלות להמשך מול משרד אמיתי</h3>
+        <ul>
+          <li>אילו שדות ומסמכים נדרשים לכל סוג ישות?</li>
+          <li>מהם השירותים, כללי החזרתיות והמועדים האמיתיים?</li>
+          <li>מי מקבל בעלות על כל סוג עבודה?</li>
+          <li>האם הפורטל דורש קישור קסם, התחברות או מנגנון אחר?</li>
+          <li>מי מקבל את הדיווח השבועי ובאיזה פורמט?</li>
+          <li>האם נדרש ייבוא היסטורי מאקסלים קיימים?</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 class="page-break">תרשימי זרימה</h2>
+
+    <section class="diagram">
+      <h3>קליטת לקוח</h3>
+      <img class="mermaid-image" src="submission-spec-he-assets/onboarding.svg" alt="תרשים Mermaid של תהליך קליטת לקוח">
+    </section>
+
+    <section class="diagram diagram-page">
+      <h3>מכתב התקשרות ב-Make</h3>
+      <img class="mermaid-image" src="submission-spec-he-assets/engagement-letter.svg" alt="תרשים Mermaid של תהליך מכתב התקשרות ב-Make">
+    </section>
+
+    <section class="diagram diagram-page">
+      <h3>משימה שוטפת ובקשת לקוח</h3>
+      <img class="mermaid-image" src="submission-spec-he-assets/ongoing-task.svg" alt="תרשים Mermaid של משימה שוטפת ובקשת לקוח">
+    </section>
+
+    <section class="diagram diagram-page">
+      <h3>פורטל לקוח</h3>
+      <img class="mermaid-image" src="submission-spec-he-assets/client-portal.svg" alt="תרשים Mermaid של פורטל לקוח">
+    </section>
+
+    <h2>מסלול הצגה מומלץ</h2>
+    <ol>
+      <li>להציג את לוחות הלקוחות, המשימות והצוות ואת השדות המרכזיים.</li>
+      <li>להראות לקוח לדוגמה, למשל אקמי בע"מ, עם סוגי שירות מע"מ ושכר.</li>
+      <li>להעביר את הלקוח דרך שאלון נשלח, מידע חסר, מסמכים התקבלו ובדיקת מסמכים.</li>
+      <li>להעביר לסטטוס תיק נפתח ולהראות יצירת קישור למכתב התקשרות.</li>
+      <li>להראות שליחת מייל מכתב התקשרות ועדכון סטטוס לנשלח.</li>
+      <li>להעביר לסטטוס פעיל ולהראות משימות שוטפות מקושרות.</li>
+      <li>להציג דשבורד עומסים, איחורים וסטטוסי קליטה.</li>
+      <li>לפתוח את הפורטל, לבחור לקוח, לראות בקשות פתוחות ולשלוח תגובת לקוח.</li>
+      <li>לחזור ל-monday ולהראות שהתגובה נשמרה ונוצרה התראה לבדיקה.</li>
+    </ol>
+
+    <h2>סיכום</h2>
+    <p>
+      המימוש מדגים פתרון קטן אך שלם: בסיס נתונים תפעולי ב-monday, אוטומציות פנימיות, אינטגרציות Make למסמכים ודוא"ל,
+      פורטל לקוח חיצוני ודשבורד ניהולי. ההחלטות המרכזיות נשמרות פשוטות: סטטוס קליטה לינארי, חסמים בשדות נפרדים,
+      משימות מתוארכות, וכתיבה חיצונית שאינה מקדמת סטטוס בלי בדיקת צוות.
+    </p>
+    <p class="footer-note">
+      המסמך אינו כולל אסימוני גישה, כתובות טריגר פרטיות, מזהי חיבור פרטיים או ערכים רגישים מקובצי סביבה.
+    </p>
+  </main>
+</body>
+</html>

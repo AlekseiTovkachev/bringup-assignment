@@ -11,7 +11,7 @@ const MONDAY_API_TOKEN = process.env.MONDAY_API_TOKEN;
 const DRY_RUN = process.argv.includes("--dry-run");
 const UPDATE_EXISTING = process.argv.includes("--update");
 const WITH_CLIENT_BACKLINKS = process.argv.includes("--with-client-backlinks");
-const DISPLAY_LANGUAGE = getArgValue("--lang") || process.env.MONDAY_DISPLAY_LANGUAGE || "en";
+const DISPLAY_LANGUAGE = getArgValue("--lang") || process.env.MONDAY_DISPLAY_LANGUAGE || "he";
 const labels = getLabels(DISPLAY_LANGUAGE);
 
 const boards = {
@@ -217,7 +217,7 @@ const taskRows = [
     staff: "Noam Levi",
     serviceType: labels.serviceTypes.payroll,
     period: "2026-07",
-    dueDate: "2026-07-10",
+    dueDate: "2026-07-05",
     status: labels.taskStatus.waitingForClient,
     request: "Client needs to send signed payroll authorization.",
   },

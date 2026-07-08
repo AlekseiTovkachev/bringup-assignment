@@ -1,0 +1,16 @@
+%%{init: {"theme": "base", "flowchart": {"nodeSpacing": 30, "rankSpacing": 42}, "themeVariables": {"fontFamily": "Arial, Noto Sans Hebrew, sans-serif", "fontSize": "20px", "primaryColor": "#ffffff", "primaryBorderColor": "#b8c4ce", "lineColor": "#6b7886", "tertiaryColor": "#eef8f6"}}}%%
+flowchart TD
+  A["תיק לקוח פעיל"] --> B["נוצרות משימות מקושרות"]
+  B --> C["האחראי מתחיל עבודה"]
+  C --> D{"דרוש מידע מהלקוח?"}
+  D -->|לא| E["עבודה פנימית עד סיום"]
+  E --> F["סטטוס: בוצע"]
+  D -->|כן| H["סטטוס: ממתין ללקוח"]
+  H --> I["בקשה בשדה מידע חסר"]
+  I --> J["הבקשה מוצגת בפורטל"]
+  J --> K["הלקוח שולח תגובה"]
+  K --> L["נשמרים תגובה ותאריך"]
+  L --> M["התראה לאחראי"]
+  M --> N{"הבקשה נפתרה?"}
+  N -->|לא| I
+  N -->|כן| E

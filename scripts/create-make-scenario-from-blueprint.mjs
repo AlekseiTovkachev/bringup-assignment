@@ -8,12 +8,14 @@ loadDotEnv();
 
 const blueprintPath = process.argv[2];
 const nameOverride = getArgValue("--name");
-const teamId = Number(getArgValue("--team-id") || process.env.MAKE_TEAM_ID || 2094513);
-const folderId = Number(getArgValue("--folder-id") || process.env.MAKE_FOLDER_ID || 365478);
-const interval = Number(getArgValue("--interval") || 900);
+const teamId = Number(getArgValue("--team-id") || requiredEnv("MAKE_TEAM_ID"));
+const folderId = Number(getArgValue("--folder-id") || requiredEnv("MAKE_FOLDER_ID"));
+const interval = getArgValue("--interval");
 
 if (!blueprintPath) {
-  console.error("Usage: node scripts/create-make-scenario-from-blueprint.mjs <blueprint.json>");
+  console.error(
+    "Usage: node scripts/create-make-scenario-from-blueprint.mjs <blueprint.json> [--name=<name>] [--interval=<seconds>]",
+  );
   process.exit(1);
 }
 
@@ -26,10 +28,7 @@ const result = await callMakeTool("scenarios_create", {
   teamId,
   folderId,
   confirmed: true,
-  scheduling: {
-    type: "indefinitely",
-    interval,
-  },
+  scheduling: schedulingFromArgs(),
   blueprint,
 });
 
@@ -127,6 +126,31 @@ function getArgValue(name) {
   if (index !== -1) return process.argv[index + 1];
 
   return "";
+}
+
+function schedulingFromArgs() {
+  if (!interval) return { type: "on-demand" };
+
+  const intervalSeconds = Number(interval);
+  if (!Number.isFinite(intervalSeconds) || intervalSeconds <= 0) {
+    console.error("--interval must be a positive number of seconds.");
+    process.exit(1);
+  }
+
+  return {
+    type: "indefinitely",
+    interval: intervalSeconds,
+  };
+}
+
+function requiredEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    console.error(`Missing required env var: ${name}`);
+    process.exit(1);
+  }
+
+  return value;
 }
 
 function buildMakeMcpUrl(selectedTransport) {

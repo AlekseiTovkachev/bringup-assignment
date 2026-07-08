@@ -114,9 +114,11 @@ Use these from the repo root:
 ```bash
 node scripts/inspect-make-mcp.mjs scenario
 node scripts/call-make-mcp.mjs scenarios_list '{"teamId":2094513}'
-node scripts/build-make-blueprints.mjs
-node scripts/create-make-scenario-from-blueprint.mjs tmp/make/blueprints/engagement-letter-hub.json
+node scripts/update-make-engagement-letter-google-docs.mjs
+node scripts/update-make-engagement-letter-gmail.mjs
+node scripts/upsert-make-weekly-report-scenario.mjs --dry-run
+node scripts/create-make-scenario-from-blueprint.mjs tmp/make/blueprints/reviewed-scenario.json
 node scripts/export-make-scenario.mjs 6468273 tmp/make/created-engagement-letter-hub-6468273.json
 ```
 
-`scripts/build-make-blueprints.mjs` reads monday board/column IDs from `.env` and writes local blueprint files under `tmp/make/blueprints/`.
+Use `scripts/create-make-scenario-from-blueprint.mjs` only after reviewing and redacting the blueprint. It requires `MAKE_TEAM_ID` and `MAKE_FOLDER_ID`; by default it creates an on-demand scenario unless `--interval=<seconds>` is provided.

@@ -11,12 +11,11 @@ const gmailConnectionId = Number(requiredEnv("MAKE_GMAIL_CONNECTION_ID"));
 const mondayConnectionId = Number(requiredEnv("MAKE_MONDAY_CONNECTION_ID"));
 const clientsBoardId = requiredEnv("MONDAY_CLIENTS_BOARD_ID");
 const scenarioName = env("MAKE_ENGAGEMENT_LETTER_SCENARIO_NAME", "BringUp - Engagement Letter Hub");
-const triggerMode = env("MAKE_ENGAGEMENT_LETTER_TRIGGER", "webhook");
-const clientItemIdExpression = triggerMode === "webhook" ? "{{2.id}}" : "{{1.id}}";
+const clientItemIdExpression = "{{2.id}}";
 
 const labels = {
-  engagementCreated: env("AUTOMATION_LABEL_ENGAGEMENT_CREATED", "Created"),
-  engagementSent: env("AUTOMATION_LABEL_ENGAGEMENT_SENT", "Sent"),
+  engagementCreated: env("AUTOMATION_LABEL_ENGAGEMENT_CREATED", "נוצר"),
+  engagementSent: env("AUTOMATION_LABEL_ENGAGEMENT_SENT", "נשלח"),
 };
 
 const columns = {
@@ -32,44 +31,37 @@ const columns = {
 
 const emailSubject = env(
   "MAKE_ENGAGEMENT_LETTER_EMAIL_SUBJECT_TEMPLATE",
-  "Your engagement letter from BringUp Accounting Firm",
+  "מכתב ההתקשרות שלך מברינגאפ",
 );
 const emailHtml = env(
   "MAKE_ENGAGEMENT_LETTER_EMAIL_HTML_TEMPLATE",
-  `<p>Dear {{2.mappable_column_values.${columns.primaryContact}.text}},</p>
-<p>Your engagement letter is ready for review.</p>
-<p><a href="{{2.mappable_column_values.${columns.engagementLink}.url}}">Open the engagement letter</a></p>
-<p>Please review it and reply to this email if you have any questions.</p>
-<p>Best regards,<br>BringUp Accounting Firm</p>`,
+  `<div dir="rtl" style="text-align:right;font-family:Arial,sans-serif;line-height:1.6">
+<p>שלום {{2.mappable_column_values.${columns.primaryContact}.text}},</p>
+<p>מכתב ההתקשרות שלך מוכן לעיון.</p>
+<p><a href="{{2.mappable_column_values.${columns.engagementLink}.url}}">פתיחת מכתב ההתקשרות</a></p>
+<p>נשמח שתעברו על המסמך ותשיבו למייל זה אם יש שאלות.</p>
+<p>בברכה,<br>ברינגאפ</p>
+</div>`,
 );
 const gmailFrom = env("MAKE_GMAIL_FROM", "");
 const gmailConnectionLabel = env("MAKE_GMAIL_CONNECTION_LABEL", "Gmail connection");
 
 const currentScenario = await getScenario(scenarioId);
 const blueprint = currentScenario.blueprint;
-const router = blueprint.flow?.find((module) => module.module === "builtin:BasicRouter");
-
-if (triggerMode !== "webhook" && triggerMode !== "schedule") {
-  fail('MAKE_ENGAGEMENT_LETTER_TRIGGER must be either "webhook" or "schedule".');
-}
+const router = findBusinessRouter(blueprint);
 
 if (!router?.routes?.[1]) {
   fail("Could not find the second router route in the engagement-letter scenario.");
 }
 
-const sentRouteFilter =
-  triggerMode === "webhook"
-    ? createdReadyToSendFilter()
-    : router.routes[1].flow?.[0]?.filter || createdReadyToSendFilter();
-
 router.routes[1].flow = [
-  withFilter(gmailSendModule(7), sentRouteFilter),
+  withFilter(gmailSendModule(7), createdReadyToSendFilter()),
   mondaySentColumnValuesModule(8),
   mondayCreateUpdateModule(
     9,
     env(
       "AUTOMATION_MESSAGE_ENGAGEMENT_SENT_UPDATE",
-      "Sent the engagement-letter email through Gmail and marked it Sent.",
+      "מייל מכתב ההתקשרות נשלח ללקוח והסטטוס עודכן לנשלח.",
     ),
     1280,
     160,
@@ -205,33 +197,13 @@ function withFilter(module, filter) {
 }
 
 function createdReadyToSendFilter() {
-  if (triggerMode === "webhook") {
-    return {
-      name: env("MAKE_ENGAGEMENT_LETTER_SEND_FILTER_NAME", "Send engagement letter hook"),
-      conditions: [
-        [
-          {
-            a: "{{1.event.columnId}}",
-            b: columns.engagementStatus,
-            o: "text:equal",
-          },
-          {
-            a: "{{1.event.value.label.text}}",
-            b: labels.engagementCreated,
-            o: "text:equal",
-          },
-        ],
-      ],
-    };
-  }
-
   return {
-    name: env("MAKE_ENGAGEMENT_LETTER_SEND_FILTER_NAME", "Created letter ready to send"),
+    name: env("MAKE_ENGAGEMENT_LETTER_SEND_FILTER_NAME", "מכתב נוצר ומוכן לשליחה"),
     conditions: [
       [
         {
-          a: `{{2.mappable_column_values.${columns.engagementStatus}.text}}`,
-          b: labels.engagementCreated,
+          a: "{{10.event.columnId}}",
+          b: columns.engagementStatus,
           o: "text:equal",
         },
         {
@@ -247,6 +219,23 @@ function createdReadyToSendFilter() {
   };
 }
 
+function findBusinessRouter(blueprint) {
+  return findModuleById(blueprint.flow || [], 3);
+}
+
+function findModuleById(flow, id) {
+  for (const module of flow) {
+    if (module?.id === id) return module;
+
+    for (const route of module?.routes || []) {
+      const match = findModuleById(route.flow || [], id);
+      if (match) return match;
+    }
+  }
+
+  return null;
+}
+
 async function getScenario(id) {
   const result = await callMakeTool("scenarios_get", { scenarioId: id });
   const text = result.content?.find((part) => part.type === "text")?.text;
@@ -258,7 +247,7 @@ async function getScenario(id) {
 }
 
 async function callMakeTool(toolName, toolArgs) {
-  if (process.env.MAKE_SCENARIO_TRANSPORT === "api") {
+  if (shouldUseMakeApi(toolName, toolArgs)) {
     return callMakeApiTool(toolName, toolArgs);
   }
 
@@ -341,6 +330,16 @@ async function callMakeTool(toolName, toolArgs) {
     child.kill("SIGTERM");
     fail(`${error.message}\n${stderr}`);
   }
+}
+
+function shouldUseMakeApi(toolName, toolArgs) {
+  if (process.env.MAKE_SCENARIO_TRANSPORT === "api") return true;
+
+  return (
+    process.env.MAKE_API_TOKEN &&
+    toolName === "scenarios_update" &&
+    toolArgs.scheduling?.type === "immediately"
+  );
 }
 
 async function callMakeApiTool(toolName, toolArgs) {

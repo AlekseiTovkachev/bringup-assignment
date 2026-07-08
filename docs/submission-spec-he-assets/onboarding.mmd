@@ -1,0 +1,14 @@
+%%{init: {"theme": "base", "flowchart": {"nodeSpacing": 30, "rankSpacing": 42}, "themeVariables": {"fontFamily": "Arial, Noto Sans Hebrew, sans-serif", "fontSize": "20px", "primaryColor": "#ffffff", "primaryBorderColor": "#b8c4ce", "lineColor": "#6b7886", "tertiaryColor": "#eef8f6"}}}%%
+flowchart TD
+  A["ליד חדש"] --> B["בדיקת פרטים ושיוך אחראי"]
+  B --> C["שאלון קליטה ומסמכים"]
+  C --> D["מסמכים התקבלו"]
+  D --> E{"המסמכים מלאים ותקינים?"}
+  E -->|לא| F["מידע חסר ובקשת פורטל"]
+  F --> G["תגובת לקוח ובדיקת צוות"]
+  G --> C
+  E -->|כן| H["סטטוס: תיק נפתח"]
+  H --> I["Make יוצר ושולח מכתב התקשרות"]
+  I --> J["אישור מוכנות"]
+  J --> K["סטטוס: פעיל"]
+  K --> L["נוצרות משימות שוטפות מקושרות"]

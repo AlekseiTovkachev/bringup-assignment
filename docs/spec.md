@@ -143,6 +143,8 @@ Recommended additions if the dashboard remains clear:
 - Upcoming deadlines for the next 7 days.
 - Active clients by service type.
 
+The practical monday setup checklist lives in `docs/dashboard.md`.
+
 ## Intake Form
 
 A monday Form or Fillout form is included as a lightweight intake channel that captures new lead details directly into the `Clients` board.
@@ -201,35 +203,28 @@ Primary demo path:
 
 Make handles cross-system automations between monday, Google Docs, Gmail, and scheduled reporting.
 
-### Scenario 1: Generate Engagement Letter
+### Scenario 1: Engagement Letter Hub
 
-Trigger: a client file's `Onboarding Status` changes to `File Opened`.
+Trigger: the Clients board item is updated in monday. The scenario fetches the full client file, then router filters decide which branch should run.
 
-Actions:
+Generate branch:
 
-- Read client file details from monday.
 - Create a Google Docs engagement letter from a template.
 - Save the generated document URL to `Engagement Letter Link`.
 - Set `Engagement Letter Status` to `Created`.
 
-Error handling:
+Send branch:
 
-- If required client details are missing, notify the assigned accountant and leave the engagement-letter status unchanged or set an integration error field.
-
-### Scenario 2: Send Engagement Letter
-
-Trigger: `Engagement Letter Status` changes to `Created` and the client file has an email address and document link.
-
-Actions:
-
-- Send a professional Gmail message to the client with the engagement-letter link.
+- Run only when `Engagement Letter Status = Created`, the client has an email address, and the engagement-letter link exists.
+- Send a professional Hebrew Gmail message to the client with the engagement-letter link.
 - Set `Engagement Letter Status` to `Sent`.
 
 Error handling:
 
+- If required client details are missing, notify the assigned accountant and leave the engagement-letter status unchanged or set an integration error field.
 - If the email address or document link is missing, notify the assigned accountant and avoid sending a partial or broken message.
 
-### Scenario 3: Weekly Management Report
+### Scenario 2: Weekly Management Report
 
 Trigger: scheduled weekly.
 

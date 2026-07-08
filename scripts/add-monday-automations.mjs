@@ -9,186 +9,217 @@ loadDotEnv();
 const FORMAT = getArgValue("--format") || "markdown";
 const CLIENTS_BOARD_ID =
   getArgValue("--clients-board-id") ||
-  process.env.MONDAY_CLIENTS_BOARD_ID ||
-  "5099844460";
+  process.env.MONDAY_CLIENTS_BOARD_ID;
 const TASKS_BOARD_ID =
   getArgValue("--tasks-board-id") ||
   getArgValue("--ongoing-tasks-board-id") ||
-  process.env.MONDAY_ONGOING_TASKS_BOARD_ID ||
-  "5099844469";
+  process.env.MONDAY_ONGOING_TASKS_BOARD_ID;
 
 const label = {
-  onboardingLead: env("AUTOMATION_LABEL_ONBOARDING_LEAD", "Lead"),
-  onboardingActive: env("AUTOMATION_LABEL_ONBOARDING_ACTIVE", "Active"),
-  serviceVatReporting: env("AUTOMATION_LABEL_SERVICE_VAT_REPORTING", "VAT Reporting"),
-  servicePayroll: env("AUTOMATION_LABEL_SERVICE_PAYROLL", "Payroll"),
-  serviceBookkeeping: env("AUTOMATION_LABEL_SERVICE_BOOKKEEPING", "Bookkeeping"),
-  taskNotStarted: env("AUTOMATION_LABEL_TASK_NOT_STARTED", "Not Started"),
-  taskWaitingForClient: env("AUTOMATION_LABEL_TASK_WAITING_FOR_CLIENT", "Waiting for Client"),
-  taskDone: env("AUTOMATION_LABEL_TASK_DONE", "Done"),
-  engagementNotCreated: env("AUTOMATION_LABEL_ENGAGEMENT_NOT_CREATED", "Not Created"),
-  clientResponseNone: env("AUTOMATION_LABEL_CLIENT_RESPONSE_NONE", "None"),
-  clientResponseNeedsReview: env("AUTOMATION_LABEL_CLIENT_RESPONSE_NEEDS_REVIEW", "Needs Review"),
-  documentCheckNotStarted: env("AUTOMATION_LABEL_DOCUMENT_CHECK_NOT_STARTED", "Not Started"),
+  onboardingLead: env("AUTOMATION_LABEL_ONBOARDING_LEAD", "ליד"),
+  onboardingActive: env("AUTOMATION_LABEL_ONBOARDING_ACTIVE", "פעיל"),
+  serviceVatReporting: env("AUTOMATION_LABEL_SERVICE_VAT_REPORTING", "דיווח מע״מ"),
+  servicePayroll: env("AUTOMATION_LABEL_SERVICE_PAYROLL", "שכר"),
+  serviceBookkeeping: env("AUTOMATION_LABEL_SERVICE_BOOKKEEPING", "הנהלת חשבונות"),
+  taskNotStarted: env("AUTOMATION_LABEL_TASK_NOT_STARTED", "טרם התחיל"),
+  taskWaitingForClient: env("AUTOMATION_LABEL_TASK_WAITING_FOR_CLIENT", "ממתין ללקוח"),
+  taskDone: env("AUTOMATION_LABEL_TASK_DONE", "בוצע"),
+  engagementNotCreated: env("AUTOMATION_LABEL_ENGAGEMENT_NOT_CREATED", "טרם נוצר"),
+  clientResponseNone: env("AUTOMATION_LABEL_CLIENT_RESPONSE_NONE", "אין תגובה"),
+  clientResponseNeedsReview: env("AUTOMATION_LABEL_CLIENT_RESPONSE_NEEDS_REVIEW", "דורש בדיקה"),
+  documentCheckNotStarted: env("AUTOMATION_LABEL_DOCUMENT_CHECK_NOT_STARTED", "טרם נבדק"),
+  onboardingFileOpened: env("AUTOMATION_LABEL_ONBOARDING_FILE_OPENED", "תיק נפתח"),
+  engagementCreated: env("AUTOMATION_LABEL_ENGAGEMENT_CREATED", "נוצר"),
 };
 
+const engagementWebhookUrl = env(
+  "MAKE_ENGAGEMENT_LETTER_WEBHOOK_URL",
+  "<MAKE_ENGAGEMENT_LETTER_WEBHOOK_URL>",
+);
+
 const name = {
-  clientsBoard: env("AUTOMATION_NAME_CLIENTS_BOARD", "Clients"),
-  tasksBoard: env("AUTOMATION_NAME_TASKS_BOARD", "Ongoing Tasks"),
-  linkedClientColumn: env("AUTOMATION_NAME_LINKED_CLIENT_COLUMN", "Linked Client File"),
-  assignedAccountantColumn: env("AUTOMATION_NAME_ASSIGNED_ACCOUNTANT_COLUMN", "Assigned Accountant"),
-  ownerColumn: env("AUTOMATION_NAME_OWNER_COLUMN", "Owner"),
-  onboardingStatusColumn: env("AUTOMATION_NAME_ONBOARDING_STATUS_COLUMN", "Onboarding Status"),
-  serviceTypesColumn: env("AUTOMATION_NAME_SERVICE_TYPES_COLUMN", "Service Types"),
-  serviceTypeColumn: env("AUTOMATION_NAME_SERVICE_TYPE_COLUMN", "Service Type"),
-  reportingPeriodColumn: env("AUTOMATION_NAME_REPORTING_PERIOD_COLUMN", "Reporting Period"),
-  dueDateColumn: env("AUTOMATION_NAME_DUE_DATE_COLUMN", "Due Date"),
-  taskStatusColumn: env("AUTOMATION_NAME_TASK_STATUS_COLUMN", "Task Status"),
-  documentCheckColumn: env("AUTOMATION_NAME_DOCUMENT_CHECK_COLUMN", "Document Check"),
+  clientsBoard: env("AUTOMATION_NAME_CLIENTS_BOARD", "לקוחות"),
+  tasksBoard: env("AUTOMATION_NAME_TASKS_BOARD", "משימות שוטפות"),
+  linkedClientColumn: env("AUTOMATION_NAME_LINKED_CLIENT_COLUMN", "תיק לקוח מקושר"),
+  assignedAccountantColumn: env("AUTOMATION_NAME_ASSIGNED_ACCOUNTANT_COLUMN", "רואה/ת חשבון מטפל/ת"),
+  ownerColumn: env("AUTOMATION_NAME_OWNER_COLUMN", "אחראי"),
+  onboardingStatusColumn: env("AUTOMATION_NAME_ONBOARDING_STATUS_COLUMN", "סטטוס קליטה"),
+  serviceTypesColumn: env("AUTOMATION_NAME_SERVICE_TYPES_COLUMN", "סוגי שירות"),
+  serviceTypeColumn: env("AUTOMATION_NAME_SERVICE_TYPE_COLUMN", "סוג שירות"),
+  reportingPeriodColumn: env("AUTOMATION_NAME_REPORTING_PERIOD_COLUMN", "תקופת דיווח"),
+  dueDateColumn: env("AUTOMATION_NAME_DUE_DATE_COLUMN", "תאריך יעד"),
+  taskStatusColumn: env("AUTOMATION_NAME_TASK_STATUS_COLUMN", "סטטוס משימה"),
+  documentCheckColumn: env("AUTOMATION_NAME_DOCUMENT_CHECK_COLUMN", "בדיקת מסמכים"),
   engagementStatusColumn: env(
     "AUTOMATION_NAME_ENGAGEMENT_LETTER_STATUS_COLUMN",
-    "Engagement Letter Status",
+    "סטטוס מכתב התקשרות",
   ),
-  clientResponseColumn: env("AUTOMATION_NAME_CLIENT_RESPONSE_COLUMN", "Client Response"),
+  clientResponseColumn: env("AUTOMATION_NAME_CLIENT_RESPONSE_COLUMN", "תגובת לקוח"),
   clientResponseDetailsColumn: env(
     "AUTOMATION_NAME_CLIENT_RESPONSE_DETAILS_COLUMN",
-    "Client Response Details",
+    "פירוט תגובת לקוח",
   ),
-  lastClientUpdateColumn: env("AUTOMATION_NAME_LAST_CLIENT_UPDATE_COLUMN", "Last Client Update"),
-  lastUpdatedColumn: env("AUTOMATION_NAME_LAST_UPDATED_COLUMN", "Last Updated"),
-  missingInformationColumn: env("AUTOMATION_NAME_MISSING_INFORMATION_COLUMN", "Missing Information"),
-  clientRequestColumn: env("AUTOMATION_NAME_CLIENT_REQUEST_COLUMN", "Client Request"),
+  lastClientUpdateColumn: env("AUTOMATION_NAME_LAST_CLIENT_UPDATE_COLUMN", "עדכון אחרון מהלקוח"),
+  lastUpdatedColumn: env("AUTOMATION_NAME_LAST_UPDATED_COLUMN", "עודכן לאחרונה"),
+  missingInformationColumn: env("AUTOMATION_NAME_MISSING_INFORMATION_COLUMN", "מידע חסר"),
+  clientRequestColumn: env("AUTOMATION_NAME_CLIENT_REQUEST_COLUMN", "בקשת לקוח"),
 };
 
 const automationSpecs = [
   {
     key: "active-client-vat-task",
     boardKey: "clients",
-    title: "Create VAT task when client becomes active",
-    prompt: `Trigger:
-When ${name.onboardingStatusColumn} changes to ${label.onboardingActive}
+    title: "יצירת משימת מע״מ כשהלקוח הופך לפעיל",
+    prompt: `טריגר:
+כאשר ${name.onboardingStatusColumn} משתנה ל-${label.onboardingActive}
 
-Conditions:
-- Only if ${name.serviceTypesColumn} contains ${label.serviceVatReporting}
+תנאים:
+- רק אם ${name.serviceTypesColumn} כולל ${label.serviceVatReporting}
 
-Actions:
-- Create an item in the Ongoing Tasks board and connect boards:
-  Target board: ${name.tasksBoard}
-  Connect the triggering ${name.clientsBoard} item to the newly created ${name.tasksBoard} item using the ${name.tasksBoard} board relation column ${name.linkedClientColumn}.
-  Item name: Prepare VAT report - {{item name}}
+פעולות:
+- ליצור פריט בלוח ${name.tasksBoard} ולקשר בין הלוחות:
+  לוח יעד: ${name.tasksBoard}
+  לקשר את פריט ${name.clientsBoard} שהפעיל את האוטומציה לפריט החדש בלוח ${name.tasksBoard} באמצעות עמודת הקשר ${name.linkedClientColumn}.
+  שם הפריט: הכנת דיווח מע״מ - {{item name}}
   ${name.linkedClientColumn}: {{item}}
   ${name.serviceTypeColumn}: ${label.serviceVatReporting}
-  ${name.reportingPeriodColumn}: Current month
+  ${name.reportingPeriodColumn}: החודש הנוכחי
   ${name.ownerColumn}: ${name.assignedAccountantColumn}
-  ${name.dueDateColumn}: 15 days after trigger date
+  ${name.dueDateColumn}: 15 ימים אחרי תאריך הטריגר
   ${name.taskStatusColumn}: ${label.taskNotStarted}`,
   },
   {
     key: "active-client-payroll-task",
     boardKey: "clients",
-    title: "Create payroll task when client becomes active",
-    prompt: `Trigger:
-When ${name.onboardingStatusColumn} changes to ${label.onboardingActive}
+    title: "יצירת משימת שכר כשהלקוח הופך לפעיל",
+    prompt: `טריגר:
+כאשר ${name.onboardingStatusColumn} משתנה ל-${label.onboardingActive}
 
-Conditions:
-- Only if ${name.serviceTypesColumn} contains ${label.servicePayroll}
+תנאים:
+- רק אם ${name.serviceTypesColumn} כולל ${label.servicePayroll}
 
-Actions:
-- Create an item in the Ongoing Tasks board and connect boards:
-  Target board: ${name.tasksBoard}
-  Connect the triggering ${name.clientsBoard} item to the newly created ${name.tasksBoard} item using the ${name.tasksBoard} board relation column ${name.linkedClientColumn}.
-  Item name: Run payroll - {{item name}}
+פעולות:
+- ליצור פריט בלוח ${name.tasksBoard} ולקשר בין הלוחות:
+  לוח יעד: ${name.tasksBoard}
+  לקשר את פריט ${name.clientsBoard} שהפעיל את האוטומציה לפריט החדש בלוח ${name.tasksBoard} באמצעות עמודת הקשר ${name.linkedClientColumn}.
+  שם הפריט: הפקת שכר - {{item name}}
   ${name.linkedClientColumn}: {{item}}
   ${name.serviceTypeColumn}: ${label.servicePayroll}
-  ${name.reportingPeriodColumn}: Current month
+  ${name.reportingPeriodColumn}: החודש הנוכחי
   ${name.ownerColumn}: ${name.assignedAccountantColumn}
-  ${name.dueDateColumn}: 10 days after trigger date
+  ${name.dueDateColumn}: 10 ימים אחרי תאריך הטריגר
   ${name.taskStatusColumn}: ${label.taskNotStarted}`,
   },
   {
     key: "active-client-bookkeeping-task",
     boardKey: "clients",
-    title: "Create bookkeeping task when client becomes active",
-    prompt: `Trigger:
-When ${name.onboardingStatusColumn} changes to ${label.onboardingActive}
+    title: "יצירת משימת הנהלת חשבונות כשהלקוח הופך לפעיל",
+    prompt: `טריגר:
+כאשר ${name.onboardingStatusColumn} משתנה ל-${label.onboardingActive}
 
-Conditions:
-- Only if ${name.serviceTypesColumn} contains ${label.serviceBookkeeping}
+תנאים:
+- רק אם ${name.serviceTypesColumn} כולל ${label.serviceBookkeeping}
 
-Actions:
-- Create an item in the Ongoing Tasks board and connect boards:
-  Target board: ${name.tasksBoard}
-  Connect the triggering ${name.clientsBoard} item to the newly created ${name.tasksBoard} item using the ${name.tasksBoard} board relation column ${name.linkedClientColumn}.
-  Item name: Bookkeeping monthly close - {{item name}}
+פעולות:
+- ליצור פריט בלוח ${name.tasksBoard} ולקשר בין הלוחות:
+  לוח יעד: ${name.tasksBoard}
+  לקשר את פריט ${name.clientsBoard} שהפעיל את האוטומציה לפריט החדש בלוח ${name.tasksBoard} באמצעות עמודת הקשר ${name.linkedClientColumn}.
+  שם הפריט: סגירת הנהלת חשבונות חודשית - {{item name}}
   ${name.linkedClientColumn}: {{item}}
   ${name.serviceTypeColumn}: ${label.serviceBookkeeping}
-  ${name.reportingPeriodColumn}: Current month
+  ${name.reportingPeriodColumn}: החודש הנוכחי
   ${name.ownerColumn}: ${name.assignedAccountantColumn}
-  ${name.dueDateColumn}: 25 days after trigger date
+  ${name.dueDateColumn}: 25 ימים אחרי תאריך הטריגר
   ${name.taskStatusColumn}: ${label.taskNotStarted}`,
   },
   {
     key: "task-due-today-owner-notice",
     boardKey: "tasks",
-    title: "Notify owner when an open task reaches its due date",
-    prompt: `Trigger:
-When ${name.dueDateColumn} arrives
-Details:
-Time: 9:00 AM
-Timezone: Asia/Jerusalem
+    title: "התראה לאחראי כשמשימה פתוחה מגיעה לתאריך היעד",
+    prompt: `טריגר:
+כאשר ${name.dueDateColumn} מגיע
+פרטים:
+שעה: 09:00
+אזור זמן: Asia/Jerusalem
 
-Conditions:
-- Only if ${name.taskStatusColumn} is not ${label.taskDone}
+תנאים:
+- רק אם ${name.taskStatusColumn} אינו ${label.taskDone}
 
-Actions:
-- Send a notification:
-  Recipient: ${name.ownerColumn}
-  Message: Task "{{item name}}" is due today and is not marked ${label.taskDone}. Please review or update the task status.`,
+פעולות:
+- לשלוח התראה:
+  נמען: ${name.ownerColumn}
+  הודעה: המשימה "{{item name}}" מגיעה היום לתאריך היעד ואינה מסומנת כ-${label.taskDone}. יש לבדוק או לעדכן את סטטוס המשימה.`,
   },
   {
     key: "task-waiting-for-client",
     boardKey: "tasks",
-    title: "Surface client-blocked tasks",
-    prompt: `Trigger:
-When ${name.taskStatusColumn} changes to ${label.taskWaitingForClient}
+    title: "הצפת משימות שממתינות ללקוח",
+    prompt: `טריגר:
+כאשר ${name.taskStatusColumn} משתנה ל-${label.taskWaitingForClient}
 
-Actions:
-- Set ${name.lastUpdatedColumn} to today
-- Send a notification:
-  Recipient: ${name.ownerColumn}
-  Message: Task "{{item name}}" is waiting for client input. Please follow up and keep the client file current.
-- Update the linked client file:
-  Linked board relation: ${name.linkedClientColumn}
+פעולות:
+- להגדיר את ${name.lastUpdatedColumn} להיום
+- לשלוח התראה:
+  נמען: ${name.ownerColumn}
+  הודעה: המשימה "{{item name}}" ממתינה לקלט מהלקוח. יש לבצע מעקב ולעדכן את תיק הלקוח.
+- לעדכן את תיק הלקוח המקושר:
+  עמודת קשר ללוח: ${name.linkedClientColumn}
   ${name.clientResponseColumn}: ${label.clientResponseNeedsReview}
-  ${name.clientResponseDetailsColumn}: Task "{{item name}}" is waiting for client input. Check ${name.missingInformationColumn} / ${name.clientRequestColumn} on the task.
-  ${name.lastClientUpdateColumn}: today`,
+  ${name.clientResponseDetailsColumn}: המשימה "{{item name}}" ממתינה לקלט מהלקוח. יש לבדוק את ${name.clientRequestColumn} במשימה ולעדכן את ${name.missingInformationColumn} בתיק הלקוח לפי הצורך.
+  ${name.lastClientUpdateColumn}: היום`,
   },
   {
     key: "portal-response-review",
     boardKey: "clients",
-    title: "Notify accountant when portal response is recorded",
-    prompt: `Trigger:
-When ${name.clientResponseColumn} changes to anything other than ${label.clientResponseNone}
+    title: "התראה לרואה החשבון כשנרשמת תגובת פורטל",
+    prompt: `טריגר:
+כאשר ${name.clientResponseColumn} משתנה לכל ערך שאינו ${label.clientResponseNone}
 
-Actions:
-- Set ${name.lastClientUpdateColumn} to today
-- Send a notification:
-  Recipient: ${name.assignedAccountantColumn}
-  Message: Client "{{item name}}" submitted a portal response. Review ${name.clientResponseDetailsColumn} before changing the onboarding or task status.`,
+פעולות:
+- להגדיר את ${name.lastClientUpdateColumn} להיום
+- לשלוח התראה:
+  נמען: ${name.assignedAccountantColumn}
+  הודעה: הלקוח "{{item name}}" שלח תגובה בפורטל. יש לבדוק את ${name.clientResponseDetailsColumn} לפני שינוי סטטוס הקליטה או המשימה.`,
   },
   {
     key: "intake-form-defaults",
     boardKey: "clients",
-    title: "Initialize new intake form leads",
-    prompt: `Trigger:
-When a new item is created
+    title: "אתחול לידים חדשים מטופס קליטה",
+    prompt: `טריגר:
+כאשר נוצר פריט חדש
 
-Actions:
-- Change ${name.onboardingStatusColumn} to ${label.onboardingLead}
-- Change ${name.documentCheckColumn} to ${label.documentCheckNotStarted}
-- Change ${name.engagementStatusColumn} to ${label.engagementNotCreated}
-- Change ${name.clientResponseColumn} to ${label.clientResponseNone}
-- Set ${name.lastClientUpdateColumn} to today`,
+פעולות:
+- לשנות את ${name.onboardingStatusColumn} ל-${label.onboardingLead}
+- לשנות את ${name.documentCheckColumn} ל-${label.documentCheckNotStarted}
+- לשנות את ${name.engagementStatusColumn} ל-${label.engagementNotCreated}
+- לשנות את ${name.clientResponseColumn} ל-${label.clientResponseNone}
+- להגדיר את ${name.lastClientUpdateColumn} להיום`,
+  },
+  {
+    key: "engagement-letter-create-webhook",
+    boardKey: "clients",
+    title: "הפעלת Make ליצירת מכתב התקשרות",
+    prompt: `טריגר:
+כאשר ${name.onboardingStatusColumn} משתנה ל-${label.onboardingFileOpened}
+
+פעולות:
+- לקרוא ל-webhook:
+  URL: ${engagementWebhookUrl}
+  Method: POST
+  Body: {"itemId":"{{item id}}","boardId":"${CLIENTS_BOARD_ID || "<MONDAY_CLIENTS_BOARD_ID>"}","source":"monday-onboarding-file-opened"}`,
+  },
+  {
+    key: "engagement-letter-send-webhook",
+    boardKey: "clients",
+    title: "הפעלת Make לשליחת מכתב התקשרות",
+    prompt: `טריגר:
+כאשר ${name.engagementStatusColumn} משתנה ל-${label.engagementCreated}
+
+פעולות:
+- לקרוא ל-webhook:
+  URL: ${engagementWebhookUrl}
+  Method: POST
+  Body: {"itemId":"{{item id}}","boardId":"${CLIENTS_BOARD_ID || "<MONDAY_CLIENTS_BOARD_ID>"}","source":"monday-engagement-letter-created"}`,
   },
 ];
 

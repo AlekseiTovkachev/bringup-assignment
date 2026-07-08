@@ -29,14 +29,14 @@ For the "active clients in a separate table" layout, keep one `Clients` board an
 
 The `Staff` board is a demo-support board for one-user monday sandboxes. It lets the demo show multiple accountants, roles, specialties, and workload distribution even when the account has only one real monday user. The real `People` columns remain in place for production; the demo staff relation columns can be used for sample data, dashboard grouping, and interview walkthroughs.
 
-Visible monday labels can be created in English or Hebrew while keeping API IDs and env var names in English. During script polishing, use English as the default:
+Visible monday labels default to Hebrew for the current demo, while API IDs and environment variable names stay in English:
 
 ```bash
 node scripts/create-monday-boards.mjs --dry-run --fresh --with-relations
 node scripts/create-monday-boards.mjs --fresh --with-relations --write-env
 ```
 
-For the assignment submission, use Hebrew visible labels if needed by passing `--lang=he`. Keep code, API IDs, and environment variable names in English.
+Pass `--lang=en` only when intentionally creating an English workspace. Keep code, API IDs, and environment variable names in English.
 
 ## Relations And Optional Mirror Columns
 
@@ -75,34 +75,53 @@ For best results, run board creation with `--with-relations` before seeding so t
 
 Keep the default polishing flow lightweight. `--with-relations` creates only the useful one-way demo links: clients to demo staff, tasks to clients, and tasks to demo staff.
 
-## Manual monday View Polish
+## Manual monday View And Dashboard Polish
 
 After the scripts run, configure the demo views in monday:
 
 1. On `Clients`, group the main table by `Onboarding Status`. This creates the active-client style layout without creating separate lifecycle groups through the API.
 2. On `Ongoing Tasks`, add a Kanban view grouped by `Task Status`.
 3. On `Ongoing Tasks`, add a saved table view for tasks where `Task Status` is `Waiting for Client`.
-4. Keep dashboards simple: workload by demo staff, overdue or near-due tasks, and clients by onboarding status.
+4. Create the manager dashboard from `docs/dashboard.md`: workload by demo staff, overdue tasks, and clients by onboarding status.
 
-These views are intentionally manual for now because monday's UI has reliable controls for grouping and saved views, while the API behavior for view/group configuration is more account-dependent.
+These views and dashboard widgets are intentionally manual for now because monday's UI has reliable controls for grouping, saved views, and widget configuration, while the API behavior for view/dashboard setup is more account-dependent.
+
+## Intake Form
+
+`scripts/add-monday-intake-form.mjs` defines the Hebrew RTL intake form payloads for Monday MCP form tools:
+
+```bash
+node scripts/add-monday-intake-form.mjs
+node scripts/add-monday-intake-form.mjs --format=mcp-json
+```
+
+The available MCP form creation tool creates a backing board for responses rather than attaching a form view to the existing `Clients` board. Treat that backing board as the intake queue, or map its response columns into the main `Clients` process after creation.
 
 ## Live Make Setup
 
-Created on July 7, 2026:
+Current Make setup as of July 8, 2026:
 
 - Make folder `BringUp Assignment`: `365478`
-- Make scenario draft `BringUp - Engagement Letter Hub`: `6468273`
-- monday Clients board: `5099847318`
-- monday Ongoing Tasks board: `5099847320`
+- Engagement-letter scenario `BringUp - Engagement Letter Hub`: `6493164`
+- Weekly report scenario `BringUp - Weekly Management Report`: `6493169`
+- monday Hebrew Clients board: `5099974942`
+- monday Hebrew Staff board: `5099974938`
+- monday Hebrew Ongoing Tasks board: `5099974963`
 
-The Make engagement-letter scenario is valid but inactive. It uses the monday connection already present in Make and contains:
+The Make engagement-letter scenario is active and runs instantly from a Make custom webhook. The monday Clients board should call `MAKE_ENGAGEMENT_LETTER_WEBHOOK_URL` when `סטטוס קליטה` becomes `תיק נפתח` or when `סטטוס מכתב התקשרות` becomes `נוצר`.
 
-- `monday:WatchBoardItemsV2` on the Clients board
-- `monday:GetItemV2`
+It contains:
+
+- module `10`: `gateway:CustomWebHook`
+- module `2`: `monday:GetItemV2`, with item ID mapped from `itemId` / `pulseId` in the webhook payload
 - a router
-- monday GraphQL update modules for Created/Sent engagement-letter status
+- a Hebrew-only Google Docs generation route
+- a Hebrew-only Gmail send route
+- monday native `ChangeMultipleColumnValuesV2` modules for `נוצר` / `נשלח` status updates
 - monday update/comment modules to leave an audit trail
 
-The scenario currently writes a demo document URL rather than creating a real Google Doc. To finish production-grade behavior, add Google Docs and Gmail connections in Make, replace the demo GraphQL link update with `google-docs:createADocumentFromTemplate`, then send the document link through a Gmail module before marking `Engagement Letter Status = Sent`.
+The `GetItemV2` module has an item-id guard. Business filters use module `2` item values, not webhook/event payloads. The Google Docs template is `תבנית מכתב התקשרות - עברית בלבד`; generated documents and emails are Hebrew-only.
 
-The Free Make license reported a two-scenario limit. Because one pre-existing scenario already exists, only the engagement-letter hub was created in Make. The weekly management report blueprint is generated locally at `tmp/make/blueprints/weekly-management-report.json`.
+The weekly report script also defaults to Hebrew RTL email copy. Keep `MAKE_WEEKLY_REPORT_*` overrides in `.env` only when the manager-report wording needs to differ from the repo default.
+
+The Free Make license reported a two-scenario limit during setup, so avoid creating extra live scenarios unless one is archived first.

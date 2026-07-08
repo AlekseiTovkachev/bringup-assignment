@@ -1,14 +1,28 @@
 const onboardingSteps = [
-  "Lead",
-  "Questionnaire Sent",
-  "Documents Received",
-  "File Opened",
-  "Active",
+  "lead",
+  "questionnaire_sent",
+  "documents_received",
+  "file_opened",
+  "active",
 ];
 
 const lookupForm = document.querySelector("#lookup-form");
+const clientPicker = document.querySelector("#client-picker");
+const taxIdInput = document.querySelector("#tax-id");
 const resultPanel = document.querySelector("#result-panel");
 const template = document.querySelector("#client-template");
+
+loadClientOptions();
+
+clientPicker.addEventListener("change", () => {
+  taxIdInput.value = clientPicker.value;
+});
+
+taxIdInput.addEventListener("input", () => {
+  if (normalizeTaxId(taxIdInput.value) !== clientPicker.value) {
+    clientPicker.value = "";
+  }
+});
 
 lookupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -17,15 +31,38 @@ lookupForm.addEventListener("submit", async (event) => {
   const taxId = normalizeTaxId(formData.get("tax-id"));
 
   if (!taxId) {
-    renderMessage("Enter a legal or tax ID.", "Use digits only for the demo lookup.", "warning");
+    renderMessage("יש להזין ח.פ או מספר מזהה.", "לצורך הדמו יש להשתמש בספרות בלבד.", "warning");
     return;
   }
 
   await lookupClient(taxId);
 });
 
+async function loadClientOptions() {
+  try {
+    const response = await fetch("/api/portal-client-options");
+    const payload = await parseJsonResponse(response);
+    renderClientOptions(payload.clients || []);
+  } catch {
+    clientPicker.replaceChildren(new Option("בחירה מרשימה לא זמינה כרגע", ""));
+  }
+}
+
+function renderClientOptions(clients) {
+  const placeholder = new Option("בחרו לקוח לדמו או הזינו מספר ידנית", "");
+  clientPicker.replaceChildren(placeholder);
+
+  for (const client of clients) {
+    if (!client.taxId) continue;
+
+    const option = new Option(`${client.name} - ${client.taxId}`, client.taxId);
+    option.dir = "rtl";
+    clientPicker.append(option);
+  }
+}
+
 async function lookupClient(taxId) {
-  renderLoading("Loading client file...");
+  renderLoading("טוען את תיק הלקוח...");
   setLookupBusy(true);
 
   try {
@@ -33,7 +70,7 @@ async function lookupClient(taxId) {
     const payload = await parseJsonResponse(response);
     renderClient(payload.client);
   } catch (error) {
-    renderMessage("Client file could not be loaded.", error.message, "danger");
+    renderMessage("לא ניתן לטעון את תיק הלקוח.", error.message, "danger");
   } finally {
     setLookupBusy(false);
   }
@@ -41,22 +78,29 @@ async function lookupClient(taxId) {
 
 function renderClient(client) {
   const fragment = template.content.cloneNode(true);
-  const currentStepIndex = onboardingSteps.indexOf(client.onboardingStatus);
-  const openTasks = client.tasks.filter((task) => task.status !== "Done");
+  const currentStep = canonicalOnboardingStatus(client.onboardingStatus);
+  const currentStepIndex = onboardingSteps.indexOf(currentStep);
+  const openTasks = client.tasks.filter((task) => !isDoneStatus(task.status));
 
-  fragment.querySelector("[data-client-name]").textContent = client.name;
+  const clientName = fragment.querySelector("[data-client-name]");
+  clientName.textContent = client.name;
+  clientName.dir = "auto";
   fragment.querySelector("[data-client-meta]").textContent = [
-    client.entityType,
-    `Tax ID ${client.taxId}`,
-    client.accountant ? `Accountant ${client.accountant}` : "",
+    localizeValue(client.entityType),
+    `מספר מזהה ${client.taxId}`,
   ]
     .filter(Boolean)
     .join(" | ");
+  const accountantPanel = fragment.querySelector("[data-accountant-panel]");
+  const accountantName = fragment.querySelector("[data-accountant-name]");
+  accountantName.textContent = client.accountant || "טרם שובץ";
+  accountantName.dir = "auto";
+  if (!client.accountant) accountantPanel.classList.add("is-empty");
   fragment.querySelector("[data-status-pill]").textContent = clientFacingStatus(
-    client.onboardingStatus,
+    currentStep || client.onboardingStatus,
   );
   fragment.querySelector("[data-task-count]").textContent =
-    `${openTasks.length} open ${openTasks.length === 1 ? "item" : "items"}`;
+    formatOpenTaskCount(openTasks.length);
 
   const progressTrack = fragment.querySelector("[data-progress-track]");
   for (const [index, step] of onboardingSteps.entries()) {
@@ -73,7 +117,7 @@ function renderClient(client) {
   if (openTasks.length === 0) {
     const empty = document.createElement("p");
     empty.className = "muted";
-    empty.textContent = "There are no open client requests at the moment.";
+    empty.textContent = "אין כרגע בקשות פתוחות מהלקוח.";
     taskList.append(empty);
   } else {
     for (const task of openTasks) {
@@ -89,7 +133,7 @@ function renderClient(client) {
     const formData = new FormData(responseForm);
     const submitButton = responseForm.querySelector("button[type='submit']");
     submitButton.disabled = true;
-    responseMessage.textContent = "Sending update...";
+    responseMessage.textContent = "העדכון נשלח...";
     responseMessage.className = "response-message";
 
     try {
@@ -104,7 +148,7 @@ function renderClient(client) {
         body: JSON.stringify(payload),
       });
       const result = await parseJsonResponse(response);
-      responseMessage.textContent = `Update sent on ${formatDate(result.submittedDate)}.`;
+      responseMessage.textContent = `העדכון נשלח בתאריך ${formatDate(result.submittedDate)}.`;
       responseForm.reset();
     } catch (error) {
       responseMessage.textContent = error.message;
@@ -127,16 +171,17 @@ function createTaskCard(task) {
   const badge = document.createElement("span");
 
   title.textContent = task.title;
+  title.dir = "auto";
   meta.textContent = [
-    task.serviceType,
+    localizeValue(task.serviceType),
     task.reportingPeriod,
-    task.dueDate ? `Due ${formatDate(task.dueDate)}` : "",
-    task.clientRequest ? `Request: ${task.clientRequest}` : "",
+    task.dueDate ? `לתאריך ${formatDate(task.dueDate)}` : "",
+    task.clientRequest ? `בקשה: ${task.clientRequest}` : "",
   ]
     .filter(Boolean)
     .join(" | ");
   badge.className = "task-badge";
-  badge.textContent = task.status;
+  badge.textContent = localizeValue(task.status);
 
   body.append(title, meta);
   article.append(body, badge);
@@ -152,7 +197,7 @@ function renderLoading(message) {
   title.textContent = message;
 
   const details = document.createElement("p");
-  details.textContent = "Fetching the latest safe client view from monday.com.";
+  details.textContent = "מביאים את התצוגה העדכנית והבטוחה ללקוח.";
 
   container.append(title, details);
   resultPanel.replaceChildren(container);
@@ -183,11 +228,11 @@ async function parseJsonResponse(response) {
   try {
     payload = await response.json();
   } catch {
-    throw new Error("The server returned an unreadable response.");
+    throw new Error("השרת החזיר תשובה שלא ניתן לקרוא.");
   }
 
   if (!response.ok) {
-    throw new Error(payload.error || "The request failed.");
+    throw new Error(payload.error || "הבקשה נכשלה.");
   }
 
   return payload;
@@ -199,22 +244,113 @@ function normalizeTaxId(value) {
 
 function clientFacingStatus(status) {
   const labels = {
-    Lead: "New request received",
-    "Questionnaire Sent": "Questionnaire sent",
-    "Documents Received": "Documents received",
-    "File Opened": "File opened",
-    Active: "Active service",
+    lead: "בקשה חדשה התקבלה",
+    Lead: "בקשה חדשה התקבלה",
+    ליד: "בקשה חדשה התקבלה",
+    questionnaire_sent: "שאלון נשלח",
+    "Questionnaire Sent": "שאלון נשלח",
+    "שאלון נשלח": "שאלון נשלח",
+    documents_received: "מסמכים התקבלו",
+    "Documents Received": "מסמכים התקבלו",
+    "מסמכים התקבלו": "מסמכים התקבלו",
+    file_opened: "תיק נפתח",
+    "File Opened": "תיק נפתח",
+    "תיק נפתח": "תיק נפתח",
+    active: "שירות פעיל",
+    Active: "שירות פעיל",
+    פעיל: "שירות פעיל",
   };
 
-  return labels[status] || status || "Status unavailable";
+  return labels[status] || localizeValue(status) || "סטטוס לא זמין";
+}
+
+function canonicalOnboardingStatus(status) {
+  const statuses = {
+    Lead: "lead",
+    ליד: "lead",
+    lead: "lead",
+    "Questionnaire Sent": "questionnaire_sent",
+    "שאלון נשלח": "questionnaire_sent",
+    questionnaire_sent: "questionnaire_sent",
+    "Documents Received": "documents_received",
+    "מסמכים התקבלו": "documents_received",
+    documents_received: "documents_received",
+    "File Opened": "file_opened",
+    "תיק נפתח": "file_opened",
+    file_opened: "file_opened",
+    Active: "active",
+    פעיל: "active",
+    active: "active",
+  };
+
+  return statuses[status] || "";
 }
 
 function formatDate(value) {
   if (!value) return "";
 
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
+  return new Intl.DateTimeFormat("he-IL", {
+    month: "long",
     day: "numeric",
     year: "numeric",
   }).format(new Date(`${value}T00:00:00`));
+}
+
+function formatOpenTaskCount(count) {
+  if (count === 0) return "אין פריטים פתוחים";
+  if (count === 1) return "פריט פתוח אחד";
+  return `${count} פריטים פתוחים`;
+}
+
+function isDoneStatus(status) {
+  return ["Done", "בוצע", "Done.", "הושלם", "Complete", "Completed"].includes(status);
+}
+
+function localizeValue(value) {
+  const labels = {
+    Individual: "יחיד / עצמאי",
+    "יחיד / עצמאי": "יחיד / עצמאי",
+    Company: "חברה בע״מ",
+    "חברה בע״מ": "חברה בע״מ",
+    Partnership: "שותפות",
+    שותפות: "שותפות",
+    Nonprofit: "עמותה",
+    עמותה: "עמותה",
+    Other: "אחר",
+    אחר: "אחר",
+    Bookkeeping: "הנהלת חשבונות",
+    "הנהלת חשבונות": "הנהלת חשבונות",
+    Payroll: "שכר",
+    שכר: "שכר",
+    "Monthly Reporting": "דיווח חודשי",
+    "דיווח חודשי": "דיווח חודשי",
+    "VAT Reporting": "דיווח מע״מ",
+    "דיווח מע״מ": "דיווח מע״מ",
+    Deductions: "ניכויים",
+    ניכויים: "ניכויים",
+    "Annual Report": "דוח שנתי",
+    "דוח שנתי": "דוח שנתי",
+    "Not Started": "טרם התחיל",
+    "טרם התחיל": "טרם התחיל",
+    "In Progress": "בתהליך",
+    בתהליך: "בתהליך",
+    "Waiting for Client": "ממתין ללקוח",
+    "ממתין ללקוח": "ממתין ללקוח",
+    "Working on it": "בטיפול",
+    Stuck: "תקוע",
+    Complete: "בוצע",
+    Completed: "בוצע",
+    Done: "בוצע",
+    בוצע: "בוצע",
+    "Documents Sent": "מסמכים נשלחו",
+    "מסמכים נשלחו": "מסמכים נשלחו",
+    "Response Received": "תגובה התקבלה",
+    "תגובה התקבלה": "תגובה התקבלה",
+    "Needs Review": "דורש בדיקה",
+    "דורש בדיקה": "דורש בדיקה",
+    None: "אין תגובה",
+    "אין תגובה": "אין תגובה",
+  };
+
+  return labels[value] || value || "";
 }

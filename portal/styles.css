@@ -13,7 +13,8 @@
   --danger: #b42318;
   --shadow: 0 18px 50px rgba(24, 38, 63, 0.12);
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    Arial, "Noto Sans Hebrew", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
 }
 
 * {
@@ -24,6 +25,7 @@ body {
   min-height: 100vh;
   margin: 0;
   color: var(--text);
+  direction: rtl;
   background:
     linear-gradient(135deg, rgba(36, 87, 214, 0.08), rgba(22, 120, 84, 0.07)),
     var(--bg);
@@ -139,12 +141,22 @@ textarea {
   border-radius: 8px;
   background: #ffffff;
   color: var(--text);
+  direction: rtl;
+  text-align: right;
 }
 
 input,
 select {
   height: 44px;
   padding: 0 12px;
+  text-align-last: right;
+  unicode-bidi: plaintext;
+}
+
+select option {
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: plaintext;
 }
 
 textarea {
@@ -246,6 +258,38 @@ button:disabled {
   font-weight: 800;
 }
 
+.client-header-side {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
+.accountant-panel {
+  min-width: 180px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.accountant-panel span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.accountant-panel strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.96rem;
+}
+
+.accountant-panel.is-empty strong {
+  color: var(--warning);
+}
+
 .progress-section,
 .task-section,
 .response-section {
@@ -305,7 +349,7 @@ button:disabled {
 
 .task-card {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -340,9 +384,64 @@ button:disabled {
   gap: 10px;
 }
 
-.response-form button {
-  justify-self: start;
+.response-form > button[type="submit"] {
+  justify-self: end;
   margin-top: 4px;
+}
+
+.response-type-group {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.response-type-group legend {
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.response-type-group label {
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #ffffff;
+  color: var(--text);
+  cursor: pointer;
+  direction: rtl;
+  text-align: right;
+}
+
+.response-type-group input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.response-type-group span {
+  line-height: 1.25;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.response-type-group label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--surface-strong);
+  color: var(--accent-dark);
+}
+
+.response-type-group label:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .response-message {
@@ -393,8 +492,25 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .response-type-group {
+    grid-template-columns: 1fr;
+  }
+
   .client-header,
   .task-card {
     grid-template-columns: 1fr;
+  }
+
+  .client-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .client-header-side {
+    justify-items: start;
+  }
+
+  .status-pill {
+    align-self: flex-start;
   }
 }

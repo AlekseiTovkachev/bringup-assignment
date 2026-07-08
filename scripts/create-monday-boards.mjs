@@ -20,7 +20,7 @@ const APPLY_BOARD_METADATA = process.argv.includes("--apply-board-metadata");
 const FRESH = process.argv.includes("--fresh");
 const WRITE_ENV = process.argv.includes("--write-env");
 const ARCHIVE_BOARD_IDS = getListArgValue("--archive-boards");
-const DISPLAY_LANGUAGE = getArgValue("--lang") || process.env.MONDAY_DISPLAY_LANGUAGE || "en";
+const DISPLAY_LANGUAGE = getArgValue("--lang") || process.env.MONDAY_DISPLAY_LANGUAGE || "he";
 const labels = getLabels(DISPLAY_LANGUAGE);
 
 const config = {

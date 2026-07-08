@@ -13,7 +13,7 @@ Copy `.env.example` to `.env` for local monday.com/API configuration. The real `
 
 ## Client Portal
 
-The `portal/` folder contains the external client portal UI. Vercel serves it from `/`, while `/api/portal-client` and `/api/portal-response` run as serverless functions that call monday.com with `MONDAY_API_TOKEN`. The browser never receives the monday API token.
+The `portal/` folder contains the external Hebrew RTL client portal UI. Vercel serves it from `/`, while `/api/portal-client` and `/api/portal-response` run as serverless functions that call monday.com with `MONDAY_API_TOKEN`. The browser never receives the monday API token.
 
 Required Vercel env vars are the monday token, board IDs, and the `MONDAY_CLIENT_*` / `MONDAY_TASK_*` column IDs from `.env.example`. Check the portal code locally with:
 
@@ -55,6 +55,30 @@ The default board IDs target the current demo boards. Override them for a fresh 
 
 Automation prompts read board/column display names and status labels from `AUTOMATION_NAME_*` and `AUTOMATION_LABEL_*` in `.env`, so the same script can target Hebrew or renamed monday boards.
 
+## Manager Dashboard
+
+The dashboard requirement is documented in `docs/dashboard.md`. Build it manually in monday from the `לקוחות` and `משימות שוטפות` boards:
+
+- workload by accountant
+- overdue tasks
+- clients by onboarding status
+
+Use the demo staff relation columns for the current one-user sandbox, and the real People columns in a production-like workspace.
+
+## Intake Form
+
+The intake form setup is captured as Monday MCP form-tool payloads:
+
+```bash
+# Human-readable setup plan.
+node scripts/add-monday-intake-form.mjs
+
+# JSON payload sequence for Monday MCP form tools.
+node scripts/add-monday-intake-form.mjs --format=mcp-json
+```
+
+The Monday MCP `create_form` tool creates a backing board for responses. Use that board as the intake queue, or map the response columns into the main `Clients` process after creation. The script uses `MONDAY_WORKSPACE_ID` plus the optional `MONDAY_INTAKE_FORM_*` values from `.env`.
+
 Optional heavier demo extras:
 
 ```bash
@@ -81,49 +105,46 @@ The current Make workspace uses:
 - Organization: `8285840`
 - Team: `2094513`
 - Folder: `365478` (`BringUp Assignment`)
-- Engagement-letter scenario: `6478914` (`BringUp - Engagement Letter Hub`)
-- Weekly report scenario: `6478901` (`BringUp - Weekly Management Report`)
+- Engagement-letter scenario: `6493164` (`BringUp - Engagement Letter Hub`)
+- Weekly report scenario: `6493169` (`BringUp - Weekly Management Report`)
 
-The engagement-letter scenario is active and webhook-driven. Its trigger is `gateway:CustomWebHook`, Make scheduling is `immediately`, and the hook ID is read from `MAKE_ENGAGEMENT_LETTER_WEBHOOK_HOOK_ID`. Keep the hook URL only in `.env`.
+The engagement-letter scenario is active and runs instantly from a Make custom webhook. The monday board should have outgoing webhook automations that call `MAKE_ENGAGEMENT_LETTER_WEBHOOK_URL` when either `סטטוס קליטה` changes to `תיק נפתח` or `סטטוס מכתב התקשרות` changes to `נוצר`.
 
-Expected hook payload shape:
+Its current live shape is:
 
-```json
-{
-  "event": {
-    "pulseId": 3057452786,
-    "columnId": "onboarding_status",
-    "value": {
-      "label": {
-        "text": "תיק נפתח"
-      }
-    }
-  }
-}
+```text
+10 gateway:CustomWebHook
+  -> 2 monday:GetItemV2, ID = itemId/pulseId from the webhook payload, Board = MONDAY_CLIENTS_BOARD_ID
+  -> 3 Router
+      -> Generate Hebrew Google Docs engagement letter
+      -> Send Hebrew Gmail engagement-letter email
 ```
 
-The generation route fires when `event.columnId` is the onboarding status column and the label is `AUTOMATION_LABEL_ONBOARDING_FILE_OPENED`. The send route fires when `event.columnId` is the engagement-letter status column and the label is `AUTOMATION_LABEL_ENGAGEMENT_CREATED`. Column updates use monday's native `ChangeMultipleColumnValuesV2` module rather than raw GraphQL.
+The `GetItemV2` module has an item-id guard. Route filters use the full item values fetched by module `2`, not transient event payload fields:
 
-To connect monday to the hook, add monday board automations on the Clients board:
+- Generate route: `onboarding_status.text = תיק נפתח`, `engagement_letter_status.text != נוצר`, and `engagement_letter_status.text != נשלח`.
+- Send route: `engagement_letter_status.text = נוצר`, `engagement_letter_link.url exists`, and `email.email exists`.
 
-- When `סטטוס קליטה` changes to `תיק נפתח`, call the webhook URL from `MAKE_GENERATE_ENGAGEMENT_LETTER_WEBHOOK_URL`.
-- When `סטטוס מכתב התקשרות` changes to `נוצר`, call the webhook URL from `MAKE_SEND_ENGAGEMENT_LETTER_WEBHOOK_URL`.
+The Google Docs template and Gmail message are Hebrew-only. Column updates use monday's native `ChangeMultipleColumnValuesV2` module rather than raw GraphQL.
 
 Useful Make scripts:
 
 ```bash
 node scripts/inspect-make-mcp.mjs scenario
-node scripts/build-make-blueprints.mjs
-node scripts/create-make-scenario-from-blueprint.mjs tmp/make/blueprints/engagement-letter-hub.json
+node scripts/recreate-make-scenarios.mjs
 node scripts/create-make-engagement-letter-scenario.mjs
 node scripts/update-make-engagement-letter-google-docs.mjs
 node scripts/update-make-engagement-letter-gmail.mjs
 node scripts/upsert-make-weekly-report-scenario.mjs --dry-run
-node scripts/export-make-scenario.mjs 6478914 tmp/make/created-engagement-letter-hub-6478914.json
+node scripts/export-make-scenario.mjs 6493164 tmp/make/created-engagement-letter-hub-6493164.json
 ```
 
-The full engagement-letter scenario script reads names, monday labels, board IDs, column IDs, Make connection IDs, and Google Drive folder/template IDs from `.env`. For translated or renamed monday setups, update the `AUTOMATION_LABEL_*` and `AUTOMATION_NAME_*` values instead of editing the script. Generated engagement letters are written to `GOOGLE_DRIVE_ENGAGEMENT_OUTPUT_FOLDER_ID`.
+The engagement-letter updater scripts read names, monday labels, board IDs, column IDs, Make connection IDs, and Google Drive folder/template IDs from `.env`. For translated or renamed monday setups, update the `AUTOMATION_LABEL_*` and `AUTOMATION_NAME_*` values instead of editing the script. Generated engagement letters are written to `GOOGLE_DRIVE_ENGAGEMENT_OUTPUT_FOLDER_ID`.
 
-Scenario 2 email sending requires a Make `google-email` connection. If `MAKE_GMAIL_CONNECTION_ID` is blank, authorize the Gmail credential request URL from `.env`, list Make connections, then set the new connection ID before running `update-make-engagement-letter-gmail.mjs`.
+The send route requires a Make `google-email` connection. If `MAKE_GMAIL_CONNECTION_ID` is blank, authorize Gmail in Make, list Make connections, then set the new connection ID before running `update-make-engagement-letter-gmail.mjs`.
+
+The engagement-letter updater defaults to `MAKE_ENGAGEMENT_LETTER_TRIGGER_MODE=webhook`, which uses immediate scheduling and `MAKE_ENGAGEMENT_LETTER_WEBHOOK_HOOK_ID`. The older `watcher` trigger mode remains as a fallback and uses `MAKE_ENGAGEMENT_LETTER_POLL_INTERVAL_SECONDS`.
 
 Scenario 3 is scripted by `scripts/upsert-make-weekly-report-scenario.mjs`. Run it with `--dry-run` to regenerate `tmp/make/blueprints/weekly-management-report.json` without touching Make. The live weekly report sends to `MAKE_WEEKLY_REPORT_RECIPIENT_EMAIL`.
+
+The weekly report script defaults to a Hebrew RTL email body and subject. Override `MAKE_WEEKLY_REPORT_*` only when intentionally changing the manager-report wording.

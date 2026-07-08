@@ -1,24 +1,29 @@
 <!doctype html>
-<html lang="en">
+<html lang="he" dir="rtl">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>BringUp Client Portal</title>
+    <title>פורטל לקוחות ברינגאפ</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="shell">
       <section class="lookup-panel" aria-labelledby="portal-title">
         <div class="brand-row">
-          <div class="brand-mark" aria-hidden="true">B</div>
+          <div class="brand-mark" aria-hidden="true">ב</div>
           <div>
-            <p class="eyebrow">BringUp Accounting</p>
-            <h1 id="portal-title">Client file portal</h1>
+            <p class="eyebrow">ברינגאפ</p>
+            <h1 id="portal-title">פורטל תיק לקוח</h1>
           </div>
         </div>
 
         <form class="lookup-form" id="lookup-form">
-          <label for="tax-id">Legal / tax ID</label>
+          <label for="client-picker">בחירת לקוח לדמו</label>
+          <select id="client-picker" name="client-picker" dir="rtl">
+            <option value="">טוען לקוחות...</option>
+          </select>
+
+          <label for="tax-id">ח.פ / מספר מזהה</label>
           <div class="lookup-control">
             <input
               id="tax-id"
@@ -26,11 +31,11 @@
               type="text"
               inputmode="numeric"
               autocomplete="off"
-              placeholder="Enter legal or tax ID"
+              placeholder="הזינו ח.פ או מספר מזהה"
             />
-            <button type="submit">View file</button>
+            <button type="submit">הצגת התיק</button>
           </div>
-          <p class="hint">Only client-facing status and open requests are shown.</p>
+          <p class="hint">מוצגים רק סטטוס התיק, בקשות פתוחות ועדכונים הרלוונטיים ללקוח.</p>
         </form>
       </section>
 
@@ -41,8 +46,8 @@
             <span></span>
             <span></span>
           </div>
-          <h2>Enter a legal or tax ID to view a client file.</h2>
-          <p>The portal shows onboarding status, open requests, and a limited client response flow.</p>
+          <h2>הזינו ח.פ או מספר מזהה כדי לצפות בתיק הלקוח.</h2>
+          <p>הפורטל מציג את סטטוס הקליטה, בקשות פתוחות ואפשרות לשליחת עדכון קצר.</p>
         </div>
       </section>
     </main>
@@ -51,45 +56,60 @@
       <article class="client-view">
         <header class="client-header">
           <div>
-            <p class="eyebrow">Client file</p>
+            <p class="eyebrow">תיק לקוח</p>
             <h2 data-client-name></h2>
             <p class="muted" data-client-meta></p>
           </div>
-          <div class="status-pill" data-status-pill></div>
+          <div class="client-header-side">
+            <div class="status-pill" data-status-pill></div>
+            <div class="accountant-panel" data-accountant-panel>
+              <span>רואה/ת חשבון מטפל/ת</span>
+              <strong data-accountant-name></strong>
+            </div>
+          </div>
         </header>
 
         <section class="progress-section" aria-labelledby="progress-heading">
-          <h3 id="progress-heading">Onboarding progress</h3>
+          <h3 id="progress-heading">התקדמות קליטה</h3>
           <ol class="progress-track" data-progress-track></ol>
         </section>
 
         <section class="task-section" aria-labelledby="tasks-heading">
           <div class="section-heading">
-            <h3 id="tasks-heading">Open tasks and requests</h3>
+            <h3 id="tasks-heading">משימות ובקשות פתוחות</h3>
             <span data-task-count></span>
           </div>
           <div class="task-list" data-task-list></div>
         </section>
 
         <section class="response-section" aria-labelledby="response-heading">
-          <h3 id="response-heading">Send an update</h3>
+          <h3 id="response-heading">שליחת עדכון</h3>
           <form class="response-form" data-response-form>
-            <label for="response-type">Update type</label>
-            <select id="response-type" name="response-type">
-              <option value="Documents Sent">Documents were sent</option>
-              <option value="Response Received">I replied with the requested information</option>
-              <option value="Needs Review">Please review my latest update</option>
-            </select>
+            <fieldset class="response-type-group">
+              <legend>סוג עדכון</legend>
+              <label>
+                <input type="radio" name="response-type" value="מסמכים נשלחו" checked />
+                <span>המסמכים נשלחו</span>
+              </label>
+              <label>
+                <input type="radio" name="response-type" value="תגובה התקבלה" />
+                <span>השבתי עם המידע שהתבקש</span>
+              </label>
+              <label>
+                <input type="radio" name="response-type" value="דורש בדיקה" />
+                <span>נא לבדוק את העדכון האחרון שלי</span>
+              </label>
+            </fieldset>
 
-            <label for="response-details">Details</label>
+            <label for="response-details">פירוט</label>
             <textarea
               id="response-details"
               name="response-details"
               rows="4"
-              placeholder="Write a short note for the accountant"
+              placeholder="כתבו הערה קצרה לרואה/ת החשבון"
             ></textarea>
 
-            <button type="submit">Submit update</button>
+            <button type="submit">שליחת עדכון</button>
             <p class="response-message" data-response-message></p>
           </form>
         </section>

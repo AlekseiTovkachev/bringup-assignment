@@ -16,7 +16,7 @@ Use Make's API and MCP server as the first path for repeatable automation work. 
 - Required for direct MCP token mode: `MAKE_MCP_TOKEN` and `MAKE_ZONE` such as `us1.make.com`.
 - Optional fallback: omit `MAKE_MCP_TOKEN` to use Make's OAuth MCP endpoint.
 - For direct Make API calls, use `MAKE_API_TOKEN` with the scopes required by the endpoint.
-- For this project, prefer `scripts/build-make-blueprints.mjs`, `scripts/create-make-scenario-from-blueprint.mjs`, and `scripts/export-make-scenario.mjs` for repeatable scenario work.
+- For this project, prefer the focused updater scripts for known scenarios, such as `scripts/update-make-engagement-letter-google-docs.mjs`, `scripts/update-make-engagement-letter-gmail.mjs`, `scripts/upsert-make-weekly-report-scenario.mjs`, and `scripts/export-make-scenario.mjs`. Use `scripts/create-make-scenario-from-blueprint.mjs` only with a reviewed, redacted blueprint.
 
 Never commit `.env`, webhook URLs, API tokens, MCP tokens, connection IDs, or live customer payloads.
 
@@ -27,7 +27,7 @@ Never commit `.env`, webhook URLs, API tokens, MCP tokens, connection IDs, or li
 3. Retrieve existing blueprints with `GET /scenarios/{scenarioId}/blueprint` when a source scenario exists.
 4. Store reusable blueprint templates with placeholders for names, connections, hooks, data stores, and environment-specific IDs.
 5. Create with `POST /scenarios` or clone with `POST /scenarios/{scenarioId}/clone`.
-6. Keep new scenarios inactive until credentials, webhooks, scheduling, and test data are confirmed.
+6. Keep new scenarios inactive until credentials, scheduling, and test data are confirmed.
 7. Verify through the API or MCP before claiming the automation is ready.
 
 ## API Patterns
@@ -55,8 +55,9 @@ This command is a long-running MCP server. Stop it after the check unless the us
 
 ## BringUp Demo Notes
 
-- Expected demo automations include engagement-letter generation, sending engagement letters, and client-response handling.
-- Prefer Make watching monday.com changes directly unless the portal explicitly needs to trigger a webhook.
-- If the portal triggers Make, use the existing `MAKE_*_WEBHOOK_URL` variables in `.env`.
+- Expected demo automations include engagement-letter generation, sending engagement letters, weekly reporting, and client-response handling.
+- Prefer Make watching monday.com changes directly unless the portal explicitly needs to trigger Make.
+- The current engagement-letter hub uses a Make `gateway:CustomWebHook` trigger called by monday outgoing webhook automations. It fetches the full item with `monday:GetItemV2`, then routes using the fetched item values.
+- Keep the scenario on `scheduling: {"type":"immediately"}` in webhook mode. Use the old monday watcher/polling mode only as a fallback when webhook automations are unavailable.
 - Keep demo data synthetic and avoid real tax IDs, client documents, or email addresses.
 - The current Make Free license may only allow two total scenarios. If capacity is full, create the engagement-letter hub first and keep the weekly report as a local blueprint until a slot is available.

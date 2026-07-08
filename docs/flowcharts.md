@@ -32,19 +32,15 @@ flowchart TD
 ```mermaid
 flowchart TD
   A["Onboarding Status changes to File Opened"] --> B["Make scenario starts"]
-  B --> C["Read client file from monday"]
-  C --> D{"Required client data exists?"}
-  D -->|No| E["Notify assigned accountant"]
-  E --> F["Set or keep integration error state"]
-  D -->|Yes| G["Create Google Docs engagement letter from template"]
-  G --> H["Insert client data into document"]
-  H --> I["Save generated document URL to monday"]
-  I --> J["Set Engagement Letter Status: Created"]
-  J --> K{"Email and document link exist?"}
-  K -->|No| L["Notify assigned accountant"]
-  L --> M["Do not send broken email"]
-  K -->|Yes| N["Send professional Gmail message"]
-  N --> O["Set Engagement Letter Status: Sent"]
+  B --> C["Watch updated item on Clients board"]
+  C --> D["Get full client file from monday"]
+  D --> E{"Router branch"}
+  E -->|File Opened and letter not created/sent| F["Create Hebrew Google Docs engagement letter"]
+  F --> G["Save generated document URL to monday"]
+  G --> H["Set Engagement Letter Status: Created"]
+  E -->|Created plus email and link exist| I["Send Hebrew Gmail message"]
+  I --> J["Set Engagement Letter Status: Sent"]
+  E -->|Required data missing| K["Skip branch and keep current state"]
 ```
 
 ## Ongoing Task And Client Request Flow

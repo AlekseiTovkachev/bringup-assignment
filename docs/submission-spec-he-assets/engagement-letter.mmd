@@ -1,0 +1,12 @@
+%%{init: {"theme": "base", "flowchart": {"nodeSpacing": 32, "rankSpacing": 46}, "themeVariables": {"fontFamily": "Arial, Noto Sans Hebrew, sans-serif", "fontSize": "20px", "primaryColor": "#ffffff", "primaryBorderColor": "#b8c4ce", "lineColor": "#6b7886", "tertiaryColor": "#eef8f6"}}}%%
+flowchart TD
+  A["שינוי סטטוס בלוח הלקוחות"] --> B["טריגר רשת מיידי"]
+  B --> C["שליפת תיק לקוח מלא"]
+  C --> D{"נתב Make"}
+  D -->|יצירה| E["תיק נפתח והמכתב לא נוצר"]
+  E --> F["יצירת Google Docs בעברית"]
+  F --> G["שמירת קישור ועדכון סטטוס"]
+  D -->|שליחה| H["סטטוס נוצר + אימייל + קישור"]
+  H --> I["שליחת Gmail בעברית"]
+  I --> J["סטטוס נשלח"]
+  D -->|חסר מידע| K["דילוג ושמירת מצב קיים"]

@@ -16,16 +16,13 @@ const mondayConnectionId = Number(requiredEnv("MAKE_MONDAY_CONNECTION_ID"));
 const clientsBoardId = requiredEnv("MONDAY_CLIENTS_BOARD_ID");
 const outputFolderId = env("GOOGLE_DRIVE_ENGAGEMENT_OUTPUT_FOLDER_ID", "/");
 const scenarioName = env("MAKE_ENGAGEMENT_LETTER_SCENARIO_NAME", "BringUp - Engagement Letter Hub");
-const triggerMode = env("MAKE_ENGAGEMENT_LETTER_TRIGGER", "webhook");
-const webhookHookId = Number(env("MAKE_ENGAGEMENT_LETTER_WEBHOOK_HOOK_ID", "0"));
-const webhookItemId = env(
-  "MAKE_ENGAGEMENT_LETTER_WEBHOOK_ITEM_ID_TEMPLATE",
-  "{{ifempty(1.itemId; 1.event.pulseId)}}",
-);
-const clientItemIdExpression = triggerMode === "webhook" ? "{{2.id}}" : "{{1.id}}";
+const engagementTriggerMode = env("MAKE_ENGAGEMENT_LETTER_TRIGGER_MODE", "webhook");
+const engagementWebhookHookId = Number(env("MAKE_ENGAGEMENT_LETTER_WEBHOOK_HOOK_ID", "0"));
+const mondayWebhookSettleSeconds = Number(env("MAKE_MONDAY_WEBHOOK_SETTLE_SECONDS", "3"));
+const clientItemIdExpression = "{{2.id}}";
 const generatedDocumentName = env(
   "MAKE_ENGAGEMENT_LETTER_DOCUMENT_NAME_TEMPLATE",
-  'Engagement Letter - {{2.name}} - {{formatDate(now; "YYYY-MM-DD")}}',
+  'מכתב התקשרות - {{2.name}} - {{formatDate(now; "YYYY-MM-DD")}}',
 );
 const generatedDocumentUrl = env(
   "MAKE_ENGAGEMENT_LETTER_DOCUMENT_URL_TEMPLATE",
@@ -33,9 +30,9 @@ const generatedDocumentUrl = env(
 );
 
 const labels = {
-  onboardingFileOpened: env("AUTOMATION_LABEL_ONBOARDING_FILE_OPENED", "File Opened"),
-  engagementCreated: env("AUTOMATION_LABEL_ENGAGEMENT_CREATED", "Created"),
-  engagementSent: env("AUTOMATION_LABEL_ENGAGEMENT_SENT", "Sent"),
+  onboardingFileOpened: env("AUTOMATION_LABEL_ONBOARDING_FILE_OPENED", "תיק נפתח"),
+  engagementCreated: env("AUTOMATION_LABEL_ENGAGEMENT_CREATED", "נוצר"),
+  engagementSent: env("AUTOMATION_LABEL_ENGAGEMENT_SENT", "נשלח"),
 };
 
 const columns = {
@@ -46,6 +43,7 @@ const columns = {
   email: env("MONDAY_CLIENT_EMAIL_COLUMN_ID", "email"),
   phone: env("MONDAY_CLIENT_PHONE_COLUMN_ID", "phone"),
   assignedAccountant: env("MONDAY_CLIENT_ASSIGNED_ACCOUNTANT_COLUMN_ID", "assigned_accountant"),
+  demoAssignedStaff: env("MONDAY_CLIENT_DEMO_ASSIGNED_STAFF_COLUMN_ID", ""),
   serviceTypes: env("MONDAY_CLIENT_SERVICE_TYPES_COLUMN_ID", "service_types"),
   engagementStatus: env(
     "MONDAY_CLIENT_ENGAGEMENT_LETTER_STATUS_COLUMN_ID",
@@ -67,53 +65,27 @@ const currentScenario = createMode
   : await getScenario(scenarioId);
 const blueprint = currentScenario.blueprint;
 
-if (triggerMode === "webhook") {
-  normalizeWebhookTrigger(blueprint);
-} else if (triggerMode !== "schedule") {
-  fail('MAKE_ENGAGEMENT_LETTER_TRIGGER must be either "webhook" or "schedule".');
-}
+normalizeTrigger(blueprint);
 
-const router = blueprint.flow?.find((module) => module.module === "builtin:BasicRouter");
+const router = findBusinessRouter(blueprint);
 
 if (!router?.routes?.[0]?.flow?.length) {
   fail("Could not find the first router route in the engagement-letter scenario.");
 }
 
-const createRouteFilter =
-  triggerMode === "webhook" ? fileOpenedFilter() : router.routes[0].flow[0].filter || fileOpenedFilter();
-const sentRouteFilter =
-  triggerMode === "webhook"
-    ? createdReadyToSendFilter()
-    : router.routes[1]?.flow?.[0]?.filter || createdReadyToSendFilter();
-
 router.routes[0].flow = [
-  withFilter(googleDocsFromTemplateModule(4), createRouteFilter),
+  withFilter(googleDocsFromTemplateModule(4), fileOpenedFilter()),
   mondayCreatedColumnValuesModule(5),
   mondayCreateUpdateModule(
     6,
     env(
       "AUTOMATION_MESSAGE_ENGAGEMENT_CREATED_UPDATE",
-      "Generated a real Google Docs engagement letter from the bilingual template and marked it Created.",
+      "נוצר מכתב התקשרות במסמך גוגל, הקישור נשמר בכרטיס הלקוח והסטטוס עודכן לנוצר.",
     ),
     1280,
     -160,
   ),
 ];
-
-if (router.routes[1]?.flow) {
-  router.routes[1].flow = [
-    withFilter(mondaySentColumnValuesModule(7), sentRouteFilter),
-    mondayCreateUpdateModule(
-      8,
-      env(
-        "AUTOMATION_MESSAGE_ENGAGEMENT_READY_TO_SEND_UPDATE",
-        "Engagement letter link exists and status was Created, so Make marked it Sent. Add Gmail delivery before activating this route for production use.",
-      ),
-      1280,
-      160,
-    ),
-  ];
-}
 
 const result = createMode
   ? await callMakeTool("scenarios_create", {
@@ -159,11 +131,11 @@ function googleDocsFromTemplateModule(id) {
         tag("client_phone", `{{2.mappable_column_values.${columns.phone}.text}}`),
         tag(
           "assigned_accountant",
-          `{{2.mappable_column_values.${columns.assignedAccountant}.text}}`,
+          accountantReplacementValue(),
         ),
         tag("service_types", `{{2.mappable_column_values.${columns.serviceTypes}.text}}`),
         tag("generated_date", '{{formatDate(now; "YYYY-MM-DD")}}'),
-        tag("firm_representative_name", "BringUp Accounting Firm"),
+        tag("firm_representative_name", "ברינגאפ"),
       ],
     },
     metadata: {
@@ -191,54 +163,11 @@ function buildBaseBlueprint() {
   return {
     name: scenarioName,
     flow: [
-      mondayWatchClientsModule(1),
-      mondayGetItemModule(2),
-      {
-        id: 3,
-        module: "builtin:BasicRouter",
-        version: 1,
-        mapper: null,
-        metadata: {
-          designer: {
-            x: 640,
-            y: 0,
-          },
-        },
-        routes: [
-          {
-            flow: [
-              withFilter(googleDocsFromTemplateModule(4), fileOpenedFilter()),
-              mondayCreatedColumnValuesModule(5),
-              mondayCreateUpdateModule(
-                6,
-                env(
-                  "AUTOMATION_MESSAGE_ENGAGEMENT_CREATED_UPDATE",
-                  "Generated a real Google Docs engagement letter from the bilingual template and marked it Created.",
-                ),
-                1280,
-                -160,
-              ),
-            ],
-          },
-          {
-            flow: [
-              withFilter(mondaySentColumnValuesModule(7), createdReadyToSendFilter()),
-              mondayCreateUpdateModule(
-                8,
-                env(
-                  "AUTOMATION_MESSAGE_ENGAGEMENT_READY_TO_SEND_UPDATE",
-                  "Engagement letter link exists and status was Created, so Make marked it Sent. Add Gmail delivery before activating this route for production use.",
-                ),
-                1280,
-                160,
-              ),
-            ],
-          },
-        ],
-      },
+      engagementTriggerModule(10),
+      webhookEntryRouterModule(businessRouterModule()),
     ],
     metadata: {
-      instant: triggerMode === "webhook",
+      instant: true,
       version: 1,
       designer: { orphans: [] },
       scenario: {
@@ -257,43 +186,66 @@ function buildBaseBlueprint() {
   };
 }
 
-function defaultScheduling(existingScheduling = null) {
-  if (triggerMode === "webhook") {
-    return null;
+function defaultScheduling() {
+  if (engagementTriggerMode === "webhook") {
+    return {
+      type: "immediately",
+    };
   }
 
-  return (
-    existingScheduling || {
-      type: "indefinitely",
-      interval: Number(env("MAKE_ENGAGEMENT_LETTER_INTERVAL_SECONDS", "900")),
-    }
-  );
+  return {
+    type: "indefinitely",
+    interval: Number(env("MAKE_ENGAGEMENT_LETTER_POLL_INTERVAL_SECONDS", "900")),
+  };
 }
 
-function normalizeWebhookTrigger(blueprint) {
-  if (!webhookHookId) {
-    fail("Missing MAKE_ENGAGEMENT_LETTER_WEBHOOK_HOOK_ID for webhook trigger mode.");
+function normalizeTrigger(blueprint) {
+  if (!Array.isArray(blueprint.flow) || blueprint.flow.length < 2) {
+    fail("Engagement-letter blueprint must contain trigger and router modules.");
   }
 
-  if (!Array.isArray(blueprint.flow) || blueprint.flow.length < 3) {
-    fail("Engagement-letter blueprint must contain trigger, item lookup, and router modules.");
+  const businessRouter = findBusinessRouter(blueprint);
+  if (!businessRouter) {
+    fail("Could not find the engagement-letter business router.");
   }
 
-  blueprint.flow[0] = webhookTriggerModule(1);
-  blueprint.flow[1] = mondayGetItemModule(2);
+  if (businessRouter.filter) delete businessRouter.filter;
+
+  blueprint.flow[0] = engagementTriggerModule(10);
+  blueprint.flow[1] = webhookEntryRouterModule(businessRouter);
+  blueprint.flow = blueprint.flow.slice(0, 2);
   blueprint.metadata = {
     ...blueprint.metadata,
     instant: true,
   };
 }
 
-function webhookTriggerModule(id) {
+function engagementTriggerModule(id) {
+  if (engagementTriggerMode === "webhook") {
+    return customWebhookModule(id);
+  }
+
+  if (engagementTriggerMode === "watcher") {
+    return mondayWatchClientsModule(id);
+  }
+
+  fail(
+    `Unsupported MAKE_ENGAGEMENT_LETTER_TRIGGER_MODE: ${engagementTriggerMode}. Use webhook or watcher.`,
+  );
+}
+
+function customWebhookModule(id) {
+  if (!engagementWebhookHookId) {
+    fail("Missing MAKE_ENGAGEMENT_LETTER_WEBHOOK_HOOK_ID for webhook trigger mode.");
+  }
+
   return {
     id,
     module: "gateway:CustomWebHook",
     version: 1,
     parameters: {
-      hook: webhookHookId,
+      hook: engagementWebhookHookId,
+      maxResults: 1,
     },
     mapper: {},
     metadata: {
@@ -301,41 +253,136 @@ function webhookTriggerModule(id) {
       restore: {
         parameters: {
           hook: {
-            data: { editable: "true" },
-            label: env("MAKE_ENGAGEMENT_LETTER_WEBHOOK_NAME", "BringUp engagement letter hook"),
+            data: {
+              editable: "true",
+            },
+            label: env(
+              "MAKE_ENGAGEMENT_LETTER_WEBHOOK_LABEL",
+              "BringUp engagement letter monday webhook",
+            ),
           },
         },
       },
       parameters: [
         { name: "hook", type: "hook:gateway-webhook", label: "Webhook", required: true },
+        { name: "maxResults", type: "number", label: "Maximum number of results" },
       ],
-      interface: [
-        { name: "itemId", type: "number", label: "Item ID" },
-        { name: "action", type: "text", label: "Action" },
+    },
+  };
+}
+
+function webhookEntryRouterModule(businessRouter) {
+  return {
+    id: 11,
+    module: "builtin:BasicRouter",
+    version: 1,
+    mapper: null,
+    metadata: {
+      designer: { x: 320, y: 0 },
+    },
+    routes: [
+      {
+        flow: [
+          withFilter(webhookChallengeResponseModule(12), mondayChallengeFilter()),
+        ],
+      },
+      {
+        flow: [
+          sleepModule(13),
+          mondayGetItemModule(2),
+          businessRouter,
+        ],
+      },
+    ],
+  };
+}
+
+function webhookChallengeResponseModule(id) {
+  return {
+    id,
+    module: "gateway:WebhookRespond",
+    version: 1,
+    parameters: {},
+    mapper: {
+      status: 200,
+      body: {
+        challenge: "{{ifempty(10.challenge; 10.event.challenge)}}",
+      },
+      headers: [
         {
-          name: "event",
-          type: "collection",
-          label: "monday Event",
-          spec: [
-            { name: "pulseId", type: "number", label: "Pulse ID" },
-            { name: "columnId", type: "text", label: "Column ID" },
-            {
-              name: "value",
-              type: "collection",
-              label: "Value",
-              spec: [
-                {
-                  name: "label",
-                  type: "collection",
-                  label: "Label",
-                  spec: [{ name: "text", type: "text", label: "Text" }],
-                },
-              ],
-            },
-          ],
+          key: "Content-Type",
+          value: "application/json",
         },
       ],
     },
+    metadata: {
+      designer: { x: 640, y: -240 },
+      expect: [
+        { name: "status", type: "uinteger", label: "Status", required: true },
+        { name: "body", type: "any", label: "Body" },
+        { name: "headers", type: "array", label: "Custom headers" },
+      ],
+    },
+  };
+}
+
+function sleepModule(id) {
+  return {
+    id,
+    module: "util:FunctionSleep",
+    version: 1,
+    parameters: {},
+    mapper: {
+      duration: mondayWebhookSettleSeconds,
+    },
+    metadata: {
+      designer: { x: 640, y: 120 },
+      expect: [
+        {
+          name: "duration",
+          type: "uinteger",
+          label: "Delay",
+          required: true,
+        },
+      ],
+    },
+  };
+}
+
+function businessRouterModule() {
+  return {
+    id: 3,
+    module: "builtin:BasicRouter",
+    version: 1,
+    mapper: null,
+    metadata: {
+      designer: {
+        x: 640,
+        y: 0,
+      },
+    },
+    routes: [
+      {
+        flow: [
+          withFilter(googleDocsFromTemplateModule(4), fileOpenedFilter()),
+          mondayCreatedColumnValuesModule(5),
+          mondayCreateUpdateModule(
+            6,
+            env(
+              "AUTOMATION_MESSAGE_ENGAGEMENT_CREATED_UPDATE",
+              "נוצר מכתב התקשרות במסמך גוגל, הקישור נשמר בכרטיס הלקוח והסטטוס עודכן לנוצר.",
+            ),
+            1280,
+            -160,
+          ),
+        ],
+      },
+      {
+        flow: [
+          withFilter(mondaySentColumnValuesModule(7), createdReadyToSendFilter()),
+        ],
+      },
+    ],
   };
 }
 
@@ -380,6 +427,8 @@ function mondayWatchClientsModule(id) {
 }
 
 function mondayGetItemModule(id) {
+  const itemIdExpression = triggerItemIdExpression();
+
   return {
     id,
     module: "monday:GetItemV2",
@@ -388,11 +437,15 @@ function mondayGetItemModule(id) {
       __IMTCONN__: mondayConnectionId,
     },
     mapper: {
-      id: triggerMode === "webhook" ? webhookItemId : "{{1.id}}",
+      id: itemIdExpression,
       boardId: clientsBoardId,
-      showSubitems: true,
-      showParentItem: true,
+      showSubitems: false,
+      showParentItem: false,
       disableOutputInterfaceCaching: false,
+    },
+    filter: {
+      name: "",
+      conditions: [[{ a: itemIdExpression, o: "exist" }]],
     },
     metadata: {
       designer: { x: 320, y: 0 },
@@ -403,12 +456,32 @@ function mondayGetItemModule(id) {
   };
 }
 
+function triggerItemIdExpression() {
+  if (engagementTriggerMode === "watcher") return "{{10.id}}";
+
+  return "{{ifempty(10.itemId; ifempty(10.pulseId; ifempty(10.event.itemId; 10.event.pulseId)))}}";
+}
+
+function mondayChallengeFilter() {
+  return {
+    name: "אימות webhook של monday",
+    conditions: [
+      [
+        {
+          a: "{{ifempty(10.challenge; 10.event.challenge)}}",
+          o: "exist",
+        },
+      ],
+    ],
+  };
+}
+
 function mondayCreatedColumnValuesModule(id) {
   return mondayChangeMultipleColumnValuesModule(
     id,
     [
       statusColumnValue(columns.engagementStatus, labels.engagementCreated),
-      linkColumnValue(columns.engagementLink, generatedDocumentUrl, "Engagement letter draft"),
+      linkColumnValue(columns.engagementLink, generatedDocumentUrl, "טיוטת מכתב התקשרות"),
       dateColumnValue(columns.lastClientUpdate),
     ],
     1280,
@@ -510,33 +583,13 @@ function withFilter(module, filter) {
 }
 
 function fileOpenedFilter() {
-  if (triggerMode === "webhook") {
-    return {
-      name: "Generate engagement letter hook",
-      conditions: [
-        [
-          {
-            a: "{{1.event.columnId}}",
-            b: columns.onboardingStatus,
-            o: "text:equal",
-          },
-          {
-            a: "{{1.event.value.label.text}}",
-            b: labels.onboardingFileOpened,
-            o: "text:equal",
-          },
-        ],
-      ],
-    };
-  }
-
   return {
-    name: "File opened and letter not created",
+    name: "יצירת מכתב התקשרות",
     conditions: [
       [
         {
-          a: `{{2.mappable_column_values.${columns.onboardingStatus}.text}}`,
-          b: labels.onboardingFileOpened,
+          a: "{{10.event.columnId}}",
+          b: columns.onboardingStatus,
           o: "text:equal",
         },
         {
@@ -555,33 +608,13 @@ function fileOpenedFilter() {
 }
 
 function createdReadyToSendFilter() {
-  if (triggerMode === "webhook") {
-    return {
-      name: env("MAKE_ENGAGEMENT_LETTER_SEND_FILTER_NAME", "Send engagement letter hook"),
-      conditions: [
-        [
-          {
-            a: "{{1.event.columnId}}",
-            b: columns.engagementStatus,
-            o: "text:equal",
-          },
-          {
-            a: "{{1.event.value.label.text}}",
-            b: labels.engagementCreated,
-            o: "text:equal",
-          },
-        ],
-      ],
-    };
-  }
-
   return {
-    name: "Created letter ready to send",
+    name: "מכתב נוצר ומוכן לשליחה",
     conditions: [
       [
         {
-          a: `{{2.mappable_column_values.${columns.engagementStatus}.text}}`,
-          b: labels.engagementCreated,
+          a: "{{10.event.columnId}}",
+          b: columns.engagementStatus,
           o: "text:equal",
         },
         {
@@ -601,6 +634,34 @@ function tag(text, replaceText) {
   return { text, replaceText };
 }
 
+function accountantReplacementValue() {
+  const assignedAccountant = `2.mappable_column_values.${columns.assignedAccountant}.text`;
+
+  if (!columns.demoAssignedStaff) {
+    return `{{${assignedAccountant}}}`;
+  }
+
+  const demoAssignedStaff = `2.mappable_column_values.${columns.demoAssignedStaff}.text`;
+  return `{{ifempty(${assignedAccountant}; ${demoAssignedStaff})}}`;
+}
+
+function findBusinessRouter(blueprint) {
+  return findModuleById(blueprint.flow || [], 3);
+}
+
+function findModuleById(flow, id) {
+  for (const module of flow) {
+    if (module?.id === id) return module;
+
+    for (const route of module?.routes || []) {
+      const match = findModuleById(route.flow || [], id);
+      if (match) return match;
+    }
+  }
+
+  return null;
+}
+
 async function getScenario(id) {
   const result = await callMakeTool("scenarios_get", { scenarioId: id });
   const text = result.content?.find((part) => part.type === "text")?.text;
@@ -612,7 +673,7 @@ async function getScenario(id) {
 }
 
 async function callMakeTool(toolName, toolArgs) {
-  if (process.env.MAKE_SCENARIO_TRANSPORT === "api") {
+  if (shouldUseMakeApi(toolName, toolArgs)) {
     return callMakeApiTool(toolName, toolArgs);
   }
 
@@ -695,6 +756,16 @@ async function callMakeTool(toolName, toolArgs) {
     child.kill("SIGTERM");
     fail(`${error.message}\n${stderr}`);
   }
+}
+
+function shouldUseMakeApi(toolName, toolArgs) {
+  if (process.env.MAKE_SCENARIO_TRANSPORT === "api") return true;
+
+  return (
+    process.env.MAKE_API_TOKEN &&
+    (toolName === "scenarios_create" || toolName === "scenarios_update") &&
+    toolArgs.scheduling?.type === "immediately"
+  );
 }
 
 async function callMakeApiTool(toolName, toolArgs) {

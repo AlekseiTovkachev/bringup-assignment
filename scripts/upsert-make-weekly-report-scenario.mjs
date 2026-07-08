@@ -10,7 +10,7 @@ const dryRun = process.argv.includes("--dry-run");
 const scenarioId = Number(env("MAKE_WEEKLY_REPORT_SCENARIO_ID", "0"));
 const makeTeamId = Number(requiredEnv("MAKE_TEAM_ID"));
 const makeFolderId = Number(requiredEnv("MAKE_FOLDER_ID"));
-const scenarioName = env("MAKE_WEEKLY_REPORT_SCENARIO_NAME", "BringUp - Weekly Management Report");
+const scenarioName = env("MAKE_WEEKLY_REPORT_SCENARIO_NAME", "ברינגאפ - דוח ניהולי שבועי");
 const mondayConnectionId = Number(requiredEnv("MAKE_MONDAY_CONNECTION_ID"));
 const gmailConnectionId = Number(requiredEnv("MAKE_GMAIL_CONNECTION_ID"));
 const recipientEmail = dryRun
@@ -20,8 +20,8 @@ const tasksBoardId = requiredEnv("MONDAY_ONGOING_TASKS_BOARD_ID");
 const clientsBoardId = requiredEnv("MONDAY_CLIENTS_BOARD_ID");
 
 const labels = {
-  taskDone: env("AUTOMATION_LABEL_TASK_DONE", "Done"),
-  taskWaitingForClient: env("AUTOMATION_LABEL_TASK_WAITING_FOR_CLIENT", "Waiting for Client"),
+  taskDone: env("AUTOMATION_LABEL_TASK_DONE", "בוצע"),
+  taskWaitingForClient: env("AUTOMATION_LABEL_TASK_WAITING_FOR_CLIENT", "ממתין ללקוח"),
 };
 
 const columns = {
@@ -41,8 +41,8 @@ const columns = {
 };
 
 const names = {
-  tasksBoard: env("AUTOMATION_NAME_TASKS_BOARD", "Ongoing Tasks"),
-  clientsBoard: env("AUTOMATION_NAME_CLIENTS_BOARD", "Clients"),
+  tasksBoard: env("AUTOMATION_NAME_TASKS_BOARD", "משימות שוטפות"),
+  clientsBoard: env("AUTOMATION_NAME_CLIENTS_BOARD", "לקוחות"),
 };
 
 const scheduling = {
@@ -88,25 +88,25 @@ function buildBlueprint() {
       mondayListBoardItems(1, tasksBoardId, 0, -360, taskColumns()),
       withFilter(
         textAggregator(2, 1, taskRowTemplate(), 320, -360),
-        "Overdue open tasks",
+        "משימות פתוחות באיחור",
         overdueTaskConditions(1),
       ),
       mondayListBoardItems(3, tasksBoardId, 0, -120, taskColumns()),
       withFilter(
         textAggregator(4, 3, taskRowTemplate(3), 320, 20),
-        `Tasks due in the next ${dueSoonDays} days`,
+        `משימות לתאריך יעד ב-${dueSoonDays} הימים הקרובים`,
         dueSoonTaskConditions(3),
       ),
       mondayListBoardItems(5, tasksBoardId, 0, 120, taskColumns()),
       withFilter(
         textAggregator(6, 5, taskRowTemplate(5), 320, 120),
-        "Tasks waiting for client",
+        "משימות שממתינות ללקוח",
         waitingForClientConditions(5),
       ),
       mondayListBoardItems(7, tasksBoardId, 0, 360, taskColumns()),
       withFilter(
         textAggregator(8, 7, ownerWorkloadRowTemplate(7), 320, 360),
-        "Open workload by accountant",
+        "עומס פתוח לפי אחראי",
         openTaskConditions(7),
       ),
       mondayListBoardItems(9, clientsBoardId, 0, 600, [
@@ -116,7 +116,7 @@ function buildBlueprint() {
       ]),
       withFilter(
         textAggregator(10, 9, clientRowTemplate(9), 320, 600),
-        "Clients with missing information",
+        "לקוחות עם מידע חסר",
         missingInformationConditions(9),
       ),
       gmailSendModule(11, 720, 120),
@@ -227,7 +227,7 @@ function gmailSendModule(id, x, y) {
       to: [recipientEmail],
       subject: env(
         "MAKE_WEEKLY_REPORT_EMAIL_SUBJECT_TEMPLATE",
-        'Weekly management report - {{formatDate(now; "YYYY-MM-DD")}}',
+        'דוח ניהולי שבועי - {{formatDate(now; "YYYY-MM-DD")}}',
       ),
       bodyType: "rawHtml",
       content: weeklyReportHtml(),
@@ -286,62 +286,62 @@ function clientRowTemplate(sourceId) {
 }
 
 function weeklyReportHtml() {
-  const emptyOverdueTasks = `<tr><td colspan="7">No overdue open tasks found.</td></tr>`;
-  const emptyDueSoonTasks = `<tr><td colspan="7">No open tasks due in the next ${dueSoonDays} days.</td></tr>`;
-  const emptyWaitingTasks = `<tr><td colspan="7">No tasks are waiting for client input.</td></tr>`;
-  const emptyWorkload = `<tr><td colspan="6">No open accountant workload found.</td></tr>`;
-  const emptyMissingInfo = `<tr><td colspan="4">No client files are currently blocked by missing information.</td></tr>`;
+  const emptyOverdueTasks = `<tr><td colspan="7">לא נמצאו משימות פתוחות באיחור.</td></tr>`;
+  const emptyDueSoonTasks = `<tr><td colspan="7">לא נמצאו משימות פתוחות לתאריך יעד ב-${dueSoonDays} הימים הקרובים.</td></tr>`;
+  const emptyWaitingTasks = `<tr><td colspan="7">אין משימות שממתינות לקלט מהלקוח.</td></tr>`;
+  const emptyWorkload = `<tr><td colspan="6">לא נמצא עומס פתוח לרואי החשבון.</td></tr>`;
+  const emptyMissingInfo = `<tr><td colspan="4">אין תיקי לקוח שחסומים כרגע בגלל מידע חסר.</td></tr>`;
 
   return `<!doctype html>
-<html>
-<body style="font-family:Arial,sans-serif;color:#202124">
-  <h2>${escapeHtml(env("MAKE_WEEKLY_REPORT_TITLE", "Weekly Management Report"))}</h2>
-  <p>Generated on {{formatDate(now; "YYYY-MM-DD HH:mm")}}.</p>
+<html lang="he" dir="rtl">
+<body style="font-family:Arial,sans-serif;color:#202124;direction:rtl;text-align:right">
+  <h2>${escapeHtml(env("MAKE_WEEKLY_REPORT_TITLE", "דוח ניהולי שבועי"))}</h2>
+  <p>נוצר בתאריך {{formatDate(now; "YYYY-MM-DD HH:mm")}}.</p>
 
-  <h3>Overdue Tasks</h3>
+  <h3>משימות באיחור</h3>
   <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%">
     <thead>
       <tr>
-        <th>Task</th><th>Client</th><th>Service</th><th>Period</th><th>Owner</th><th>Due Date</th><th>Status</th>
+        <th>משימה</th><th>לקוח</th><th>שירות</th><th>תקופה</th><th>אחראי</th><th>תאריך יעד</th><th>סטטוס</th>
       </tr>
     </thead>
     <tbody>{{ifempty(2.text; '${emptyOverdueTasks}')}}</tbody>
   </table>
 
-  <h3>Tasks Due In The Next ${dueSoonDays} Days</h3>
+  <h3>משימות לתאריך יעד ב-${dueSoonDays} הימים הקרובים</h3>
   <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%">
     <thead>
       <tr>
-        <th>Task</th><th>Client</th><th>Service</th><th>Period</th><th>Owner</th><th>Due Date</th><th>Status</th>
+        <th>משימה</th><th>לקוח</th><th>שירות</th><th>תקופה</th><th>אחראי</th><th>תאריך יעד</th><th>סטטוס</th>
       </tr>
     </thead>
     <tbody>{{ifempty(4.text; '${emptyDueSoonTasks}')}}</tbody>
   </table>
 
-  <h3>Tasks Waiting for Client</h3>
+  <h3>משימות שממתינות ללקוח</h3>
   <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%">
     <thead>
       <tr>
-        <th>Task</th><th>Client</th><th>Service</th><th>Period</th><th>Owner</th><th>Due Date</th><th>Status</th>
+        <th>משימה</th><th>לקוח</th><th>שירות</th><th>תקופה</th><th>אחראי</th><th>תאריך יעד</th><th>סטטוס</th>
       </tr>
     </thead>
     <tbody>{{ifempty(6.text; '${emptyWaitingTasks}')}}</tbody>
   </table>
 
-  <h3>Load By Accountant</h3>
+  <h3>עומס לפי אחראי</h3>
   <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%">
     <thead>
       <tr>
-        <th>Owner</th><th>Task</th><th>Client</th><th>Service</th><th>Due Date</th><th>Status</th>
+        <th>אחראי</th><th>משימה</th><th>לקוח</th><th>שירות</th><th>תאריך יעד</th><th>סטטוס</th>
       </tr>
     </thead>
     <tbody>{{ifempty(8.text; '${emptyWorkload}')}}</tbody>
   </table>
 
-  <h3>Client Files Missing Information</h3>
+  <h3>תיקי לקוח עם מידע חסר</h3>
   <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%">
     <thead>
-      <tr><th>Client</th><th>Email</th><th>Onboarding Status</th><th>Missing Information</th></tr>
+      <tr><th>לקוח</th><th>אימייל</th><th>סטטוס קליטה</th><th>מידע חסר</th></tr>
     </thead>
     <tbody>{{ifempty(10.text; '${emptyMissingInfo}')}}</tbody>
   </table>

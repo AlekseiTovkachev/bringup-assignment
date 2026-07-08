@@ -1,0 +1,14 @@
+%%{init: {"theme": "base", "flowchart": {"nodeSpacing": 32, "rankSpacing": 46}, "themeVariables": {"fontFamily": "Arial, Noto Sans Hebrew, sans-serif", "fontSize": "20px", "primaryColor": "#ffffff", "primaryBorderColor": "#b8c4ce", "lineColor": "#6b7886", "tertiaryColor": "#eef8f6"}}}%%
+flowchart TD
+  A["פתיחת פורטל"] --> B["בחירת תיק או הזנת ח.פ / תעודת זהות"]
+  B --> C["שרת הפורטל שואל את מערכת העבודה"]
+  C --> D{"נמצא תיק מתאים?"}
+  D -->|לא| E["הודעה ידידותית ללא חשיפת מידע"]
+  D -->|כן| F["טעינת סטטוס, משימות ובקשות"]
+  F --> G["הסתרת מידע פנימי"]
+  G --> H{"הלקוח שולח תגובה?"}
+  H -->|לא| I["סיום צפייה"]
+  H -->|כן| J["תגובה מוגבלת"]
+  J --> K["עדכון שדות תגובת לקוח"]
+  K --> L["שמירת פירוט ותאריך"]
+  L --> M["התראה לאחראי לבדיקה"]
