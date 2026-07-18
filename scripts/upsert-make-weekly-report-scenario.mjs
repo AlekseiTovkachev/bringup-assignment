@@ -18,6 +18,10 @@ const recipientEmail = dryRun
   : requiredEnv("MAKE_WEEKLY_REPORT_RECIPIENT_EMAIL");
 const tasksBoardId = requiredEnv("MONDAY_ONGOING_TASKS_BOARD_ID");
 const clientsBoardId = requiredEnv("MONDAY_CLIENTS_BOARD_ID");
+const reportApiUrl = env(
+  "MAKE_WEEKLY_REPORT_API_URL",
+  "https://bringup-assignment.vercel.app/api/weekly-report",
+);
 
 const labels = {
   taskDone: env("AUTOMATION_LABEL_TASK_DONE", "בוצע"),
@@ -83,6 +87,22 @@ const result = scenarioId
 console.log(JSON.stringify(result, null, 2));
 
 function buildBlueprint() {
+  if (env("MAKE_WEEKLY_REPORT_USE_HTTP", "true") !== "false") {
+    return buildHttpReportBlueprint();
+  }
+
+  return buildMondayAggregatorBlueprint();
+}
+
+function buildHttpReportBlueprint() {
+  return {
+    name: scenarioName,
+    flow: [httpGetWeeklyReportModule(1, 0, 0), gmailSendHttpReportModule(2, 360, 0)],
+    metadata: scenarioMetadata(),
+  };
+}
+
+function buildMondayAggregatorBlueprint() {
   return {
     name: scenarioName,
     flow: [
@@ -105,41 +125,146 @@ function buildBlueprint() {
         waitingForClientConditions(5),
       ),
       mondayListBoardItems(7, tasksBoardId, 0, 360, taskColumns()),
-      withFilter(
-        textAggregator(8, 7, ownerWorkloadRowTemplate(7), 320, 360),
-        "עומס פתוח לפי אחראי",
-        openTaskConditions(7),
-      ),
+      textAggregator(8, 7, ownerWorkloadRowTemplate(7), 320, 360),
       mondayListBoardItems(9, clientsBoardId, 0, 600, [
         columns.clientEmail,
         columns.clientMissingInformation,
         columns.clientOnboardingStatus,
       ]),
-      withFilter(
-        textAggregator(10, 9, clientRowTemplate(9), 320, 600),
-        "לקוחות עם מידע חסר",
-        missingInformationConditions(9),
-      ),
+      textAggregator(10, 9, clientRowTemplate(9), 320, 600),
       gmailSendModule(11, 720, 120),
     ],
-    metadata: {
-      instant: false,
-      version: 1,
-      designer: { orphans: [] },
-      scenario: {
-        dlq: false,
-        slots: null,
-        dataloss: false,
-        maxErrors: 3,
-        autoCommit: true,
-        roundtrips: 1,
-        sequential: false,
-        confidential: false,
-        freshVariables: false,
-        autoCommitTriggerLast: true,
-      },
+    metadata: scenarioMetadata(),
+  };
+}
+
+function scenarioMetadata() {
+  return {
+    instant: false,
+    version: 1,
+    designer: { orphans: [] },
+    scenario: {
+      dlq: false,
+      slots: null,
+      dataloss: false,
+      maxErrors: 3,
+      autoCommit: true,
+      roundtrips: 1,
+      sequential: false,
+      confidential: false,
+      freshVariables: false,
+      autoCommitTriggerLast: true,
     },
   };
+}
+
+function httpGetWeeklyReportModule(id, x, y) {
+  return {
+    id,
+    module: "http:MakeRequest",
+    version: 4,
+    parameters: {
+      tlsType: "",
+      authenticationType: "noAuth",
+    },
+    mapper: {
+      url: reportHtmlUrl(),
+      method: "get",
+      shareCookies: false,
+      parseResponse: false,
+      allowRedirects: true,
+      stopOnHttpError: true,
+      requestCompressedContent: true,
+    },
+    metadata: {
+      designer: { x, y },
+      restore: {
+        parameters: {
+          tlsType: { label: "Empty" },
+          authenticationType: {
+            label: "No authenticationUse when no credentials are required for the request.",
+          },
+        },
+        expect: {
+          method: { mode: "chose", label: "GET" },
+          headers: { mode: "chose" },
+          contentType: { label: "Empty" },
+          shareCookies: { mode: "chose" },
+          parseResponse: { mode: "chose" },
+          allowRedirects: { mode: "chose" },
+          queryParameters: { mode: "chose" },
+          stopOnHttpError: { mode: "chose" },
+          requestCompressedContent: { mode: "chose" },
+        },
+      },
+      parameters: [
+        {
+          name: "authenticationType",
+          type: "select",
+          label: "Authentication type",
+          required: true,
+          validate: { enum: ["noAuth", "apiKey", "basicAuth", "oAuth"] },
+        },
+        {
+          name: "tlsType",
+          type: "select",
+          label: "Transport layer security (TLS)",
+          validate: { enum: ["mTls", "tls"] },
+        },
+        {
+          name: "proxyKeychain",
+          type: "keychain:proxy",
+          label: "Proxy",
+        },
+      ],
+    },
+  };
+}
+
+function gmailSendHttpReportModule(id, x, y) {
+  return {
+    id,
+    module: "google-email:sendAnEmail",
+    version: 4,
+    parameters: {
+      __IMTCONN__: gmailConnectionId,
+    },
+    mapper: {
+      to: [recipientEmail],
+      subject: env(
+        "MAKE_WEEKLY_REPORT_EMAIL_SUBJECT_TEMPLATE",
+        'דוח ניהולי שבועי - {{formatDate(now; "YYYY-MM-DD")}}',
+      ),
+      bodyType: "rawHtml",
+      content: "{{1.data}}",
+      ...(env("MAKE_GMAIL_FROM", "") ? { from: env("MAKE_GMAIL_FROM", "") } : {}),
+    },
+    metadata: {
+      designer: { x, y },
+      restore: {
+        parameters: {
+          __IMTCONN__: {
+            data: { scoped: "true", connection: "google-email" },
+            label: env("MAKE_GMAIL_CONNECTION_LABEL", "Gmail connection"),
+          },
+        },
+        mapper: {
+          bodyType: { mode: "chose", label: "Raw HTML" },
+        },
+      },
+      parameters: [
+        { name: "__IMTCONN__", type: "account:google-email", label: "Connection", required: true },
+      ],
+    },
+  };
+}
+
+function reportHtmlUrl() {
+  const url = new URL(reportApiUrl);
+  url.searchParams.set("format", "html");
+  const secret = env("MAKE_WEEKLY_REPORT_API_SECRET", "");
+  if (secret) url.searchParams.set("secret", secret);
+  return url.toString();
 }
 
 function taskColumns() {
@@ -368,7 +493,7 @@ function overdueTaskConditions(sourceId) {
     [
       ...openTaskConditions(sourceId)[0],
       {
-        a: `{{${sourceId}.mappable_column_values.${columns.taskDueDate}.date}}`,
+        a: `{{${sourceId}.mappable_column_values.${columns.taskDueDate}.text}}`,
         b: "{{formatDate(now; \"YYYY-MM-DD\")}}",
         o: "date:less",
       },
@@ -381,12 +506,12 @@ function dueSoonTaskConditions(sourceId) {
     [
       ...openTaskConditions(sourceId)[0],
       {
-        a: `{{${sourceId}.mappable_column_values.${columns.taskDueDate}.date}}`,
+        a: `{{${sourceId}.mappable_column_values.${columns.taskDueDate}.text}}`,
         b: "{{formatDate(now; \"YYYY-MM-DD\")}}",
         o: "date:greaterOrEqual",
       },
       {
-        a: `{{${sourceId}.mappable_column_values.${columns.taskDueDate}.date}}`,
+        a: `{{${sourceId}.mappable_column_values.${columns.taskDueDate}.text}}`,
         b: `{{formatDate(addDays(now; ${dueSoonDays}); "YYYY-MM-DD")}}`,
         o: "date:lessOrEqual",
       },

@@ -4,5 +4,6 @@
 !.env.example
 .env.before-*
 tmp/
+backups/
 
 .vercel

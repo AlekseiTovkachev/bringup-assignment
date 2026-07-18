@@ -65,6 +65,7 @@ const currentScenario = createMode
   : await getScenario(scenarioId);
 const blueprint = currentScenario.blueprint;
 
+sanitizeBlueprintForSave(blueprint);
 normalizeTrigger(blueprint);
 
 const router = findBusinessRouter(blueprint);
@@ -642,7 +643,12 @@ function accountantReplacementValue() {
   }
 
   const demoAssignedStaff = `2.mappable_column_values.${columns.demoAssignedStaff}.text`;
-  return `{{ifempty(${assignedAccountant}; ${demoAssignedStaff})}}`;
+  return `{{ifempty(${demoAssignedStaff}; ${assignedAccountant})}}`;
+}
+
+function sanitizeBlueprintForSave(blueprint) {
+  delete blueprint.interface;
+  delete blueprint.scheduling;
 }
 
 function findBusinessRouter(blueprint) {

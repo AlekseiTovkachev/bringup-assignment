@@ -50,6 +50,8 @@ const currentScenario = await getScenario(scenarioId);
 const blueprint = currentScenario.blueprint;
 const router = findBusinessRouter(blueprint);
 
+sanitizeBlueprintForSave(blueprint);
+
 if (!router?.routes?.[1]) {
   fail("Could not find the second router route in the engagement-letter scenario.");
 }
@@ -202,8 +204,8 @@ function createdReadyToSendFilter() {
     conditions: [
       [
         {
-          a: "{{10.event.columnId}}",
-          b: columns.engagementStatus,
+          a: `{{2.mappable_column_values.${columns.engagementStatus}.text}}`,
+          b: labels.engagementCreated,
           o: "text:equal",
         },
         {
@@ -211,7 +213,7 @@ function createdReadyToSendFilter() {
           o: "text:exist",
         },
         {
-          a: `{{2.mappable_column_values.${columns.engagementLink}.url}}`,
+          a: `{{2.mappable_column_values.${columns.engagementLink}}}`,
           o: "text:exist",
         },
       ],
@@ -221,6 +223,11 @@ function createdReadyToSendFilter() {
 
 function findBusinessRouter(blueprint) {
   return findModuleById(blueprint.flow || [], 3);
+}
+
+function sanitizeBlueprintForSave(blueprint) {
+  delete blueprint.interface;
+  delete blueprint.scheduling;
 }
 
 function findModuleById(flow, id) {

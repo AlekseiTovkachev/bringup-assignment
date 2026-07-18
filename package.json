@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "portal:check": "node --check api/portal-client.js && node --check api/portal-client-options.js && node --check api/portal-response.js && node --check lib/monday-client.js && node --check lib/portal-service.js && node --check lib/validation.js && node --check portal/app.js",
+    "portal:check": "node --check api/portal-client.js && node --check api/portal-client-options.js && node --check api/portal-response.js && node --check api/weekly-report.js && node --check lib/monday-client.js && node --check lib/portal-service.js && node --check lib/validation.js && node --check lib/weekly-report-service.js && node --check portal/app.js",
     "portal:smoke": "node scripts/portal-smoke.mjs",
     "portal:dev": "vercel dev"
   },
